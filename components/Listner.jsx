@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import OnAirIndicator from '@/components/OnAirIndicator';
 import AudioLevelMeter from '@/components/AudioLevelMeter';
 import ListenerCountBadge from '@/components/ListenerCountBadge';
-import { Volume, VolumeX, ArrowLeft } from 'lucide-react';
+import { Volume, VolumeX, ArrowLeft, Play, Pause, Radio, Signal, Headphones, Users, Wifi, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import AgoraRTC from 'agora-rtc-sdk-ng';
 import debounce from 'lodash/debounce';
@@ -21,7 +21,7 @@ const Listner = () => {
   const [client, setClient] = useState(null);
   const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [remoteMediaStreamTrack,setRemoteMediaStreamTrack] = useState(undefined);
+  const [remoteMediaStreamTrack, setRemoteMediaStreamTrack] = useState(undefined);
 
   // Create debounced volume handler
   const debouncedVolumeChange = useCallback(
@@ -30,7 +30,7 @@ const Listner = () => {
         remoteAudioTrack.setVolume(newVolume);
       }
     }, 100),
-    [remoteAudioTrack, isMuted,isPlaying]
+    [remoteAudioTrack, isMuted, isPlaying]
   );
 
   // Handle volume change with debounce
@@ -144,8 +144,6 @@ const Listner = () => {
     }
   };
 
-  
-
   const toggleMute = () => {
     if (remoteAudioTrack) {
       if (isMuted) {
@@ -158,8 +156,6 @@ const Listner = () => {
     toast.info(isMuted ? "Audio unmuted" : "Audio muted");
   };
 
-
-
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -170,26 +166,55 @@ const Listner = () => {
       }
     },5000)
 
-
     return () => {
       clearInterval(interval);
     }
   },[]);
 
-
-
   console.log(remoteMediaStreamTrack,"remoteMediaStreamTrack")
+
+  // English flag component with proper UK flag design
+  const EnglishFlag = () => (
+    <div className="flex items-center gap-3 bg-white/95 backdrop-blur-lg px-4 py-2.5 rounded-xl border border-gray-200/80 shadow-lg">
+      <div className="relative w-8 h-6 rounded overflow-hidden shadow-md">
+        <div className="absolute inset-0 bg-blue-600"></div>
+        {/* White cross */}
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-white transform origin-center rotate-0"></div>
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white"></div>
+        <div className="absolute top-0 left-1/2 w-0.5 h-full bg-white transform -translate-x-1/2"></div>
+        {/* Red cross */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600"></div>
+        <div className="absolute top-0 left-1/2 w-1 h-full bg-red-600 transform -translate-x-1/2"></div>
+        {/* Diagonal red lines */}
+        <div className="absolute top-0 left-0 w-4 h-3 bg-blue-600 border-r-2 border-b-2 border-red-600"></div>
+        <div className="absolute top-0 right-0 w-4 h-3 bg-blue-600 border-l-2 border-b-2 border-red-600"></div>
+        <div className="absolute bottom-0 left-0 w-4 h-3 bg-blue-600 border-r-2 border-t-2 border-red-600"></div>
+        <div className="absolute bottom-0 right-0 w-4 h-3 bg-blue-600 border-l-2 border-t-2 border-red-600"></div>
+      </div>
+      <span className="text-sm font-bold text-gray-800 tracking-wide">English Interpretation</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-zero-beige">
-      {/* Header */}
-      <header className="bg-zero-navy text-white p-4 sticky top-0 z-10">
+      {/* Modern Header */}
+      <header className="bg-zero-navy text-white p-6 sticky top-0 z-50 backdrop-blur-xl border-b border-white/10">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-playfair font-bold">ZERO Listener</h1>
+          <div className="flex items-center gap-6">
+            <div className="w-14 h-14 bg-gradient-to-br from-zero-green to-zero-blue rounded-2xl flex items-center justify-center shadow-xl">
+              <Radio className="h-7 w-7 text-zero-text" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-playfair font-bold tracking-tight">
+                Rafiky
+              </h1>
+              <p className="text-sm text-white/70 font-inter font-medium">Live Audio Interpretation Platform</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <EnglishFlag />
             <OnAirIndicator isLive={isLive} />
             <ListenerCountBadge count={listenerCount} />
           </div>
@@ -197,138 +222,314 @@ const Listner = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto p-6 max-w-4xl">
-        <div className="grid gap-8 md:grid-cols-2 ">
-          {/* Hero Card */}
-          <Card className="col-span-full bg-white/80 backdrop-blur-sm p-8 text-center shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-4xl font-playfair font-bold text-zero-text mb-4">
-                Live Audio Stream
+      <main className="container mx-auto p-8 max-w-7xl">
+        {/* Festival Hero Section */}
+        <div className="mb-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-zero-green/20 via-zero-blue/10 to-zero-navy/20 backdrop-blur-sm shadow-2xl border border-white/20">
+          <div className="absolute inset-0 bg-gradient-to-r from-zero-green/5 to-zero-blue/5"></div>
+          <div className="relative p-12">
+            {/* Festival Image Placeholder */}
+            <div className="mb-8 h-32 bg-gradient-to-r from-zero-green to-zero-blue rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="text-center text-white">
+                <h3 className="text-2xl font-playfair font-bold">GB FESTIVAL</h3>
+                <p className="text-sm opacity-90 font-inter">Green & Blue Festival</p>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <h2 className="text-5xl font-playfair font-bold text-zero-text mb-4 tracking-tight">
+                Green & Blue Festival 2025
               </h2>
-              <p className="text-lg font-inter text-zero-text/70">
-                Professional interpretation service
+              <p className="text-2xl font-inter text-zero-text/80 mb-8 font-light">
+                Live English Interpretation Service
               </p>
+              
+              <div className="flex items-center justify-center gap-6 flex-wrap">
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                  <Headphones className="h-5 w-5 text-zero-blue" />
+                  <span className="font-semibold text-zero-text font-inter">Live Interpretation</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                  <Signal className="h-5 w-5 text-zero-green" />
+                  <span className="font-semibold text-zero-text font-inter">Premium Audio Quality</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                  <Globe className="h-5 w-5 text-zero-navy" />
+                  <span className="font-semibold text-zero-text font-inter">Real-time Translation</span>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-center gap-4">
-              {isLive && (
-                <Button 
-                  onClick={handlePlayPauseStream}
-                  className={`w-full md:w-auto text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105 ${
-                    isPlaying 
-                      ? 'bg-zero-warning text-white hover:bg-zero-warning/90' 
-                      : 'bg-zero-green text-zero-text hover:bg-zero-green/90'
-                  }`}
-                  size="lg"
-                >
-                  {isPlaying ? 'Pause Stream' : 'Play Stream'}
-                </Button>
-              )}
+        <div className="grid gap-10 lg:grid-cols-3">
+          {/* Main Player Section */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Primary Control Card */}
+            <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
+              <div className="p-10 text-center">
+                <div className="w-32 h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl">
+                  {isPlaying ? (
+                    <Pause className="h-14 w-14 text-white" />
+                  ) : (
+                    <Play className="h-14 w-14 text-white ml-2" />
+                  )}
+                </div>
+                
+                <h3 className="text-4xl font-playfair font-bold text-zero-text mb-4">
+                  {isLive ? 'Live Stream Active' : 'Stream Offline'}
+                </h3>
+                <p className="text-xl font-inter text-zero-text/70 mb-10 font-light">
+                  {isLive ? 'English interpretation in progress' : 'Waiting for broadcaster...'}
+                </p>
 
-              {!isLive && (
-                <Button
-                  className="w-full md:w-auto bg-zero-navy/80 text-white text-lg px-8 py-6 font-semibold transition-all duration-300 hover:bg-zero-navy/80"
-                  size="lg"
-                >
-                  Waiting For Broadcaster...
-                </Button>
-              )}
-            </div>
-          </Card>
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-6">
+                  {isLive && (
+                    <Button 
+                      onClick={handlePlayPauseStream}
+                      className={`text-xl px-12 py-8 font-bold transition-all duration-300 hover:scale-105 shadow-xl font-inter rounded-2xl ${
+                        isPlaying 
+                          ? 'bg-zero-warning text-white hover:bg-zero-warning/90 hover:shadow-2xl' 
+                          : 'bg-zero-green text-zero-text hover:bg-zero-green/90 hover:shadow-2xl'
+                      }`}
+                      size="lg"
+                    >
+                      {isPlaying ? (
+                        <>
+                          <Pause className="mr-3 h-6 w-6" />
+                          Pause Stream
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-3 h-6 w-6" />
+                          Play Stream
+                        </>
+                      )}
+                    </Button>
+                  )}
 
-          {/* Audio Controls */}
-          <Card className="bg-white/80 backdrop-blur-sm p-6 shadow-lg">
-            <h3 className="text-xl font-playfair font-semibold text-zero-text mb-6">
-              Audio Controls
-            </h3>
+                  {!isLive && (
+                    <Button
+                      className="text-xl px-12 py-8 bg-zero-navy/80 text-white font-bold transition-all duration-300 hover:bg-zero-navy/70 font-inter rounded-2xl shadow-xl"
+                      size="lg"
+                      disabled
+                    >
+                      <Radio className="mr-3 h-6 w-6" />
+                      Waiting For Broadcaster...
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
 
-            <div className="space-y-6">
-              {/* Volume Control */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="font-inter font-medium text-zero-text">
-                    Volume
-                  </label>
+            {/* Audio Controls */}
+            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
+              <div className="p-8">
+                <h4 className="text-2xl font-playfair font-bold text-zero-text mb-8 flex items-center gap-4">
+                  <Volume className="h-7 w-7 text-zero-blue" />
+                  Audio Controls
+                </h4>
+                
+                <div className="flex items-center gap-8">
                   <button
                     onClick={toggleMute}
-                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    className="p-4 rounded-2xl bg-gray-100 hover:bg-gray-200 transition-all duration-300 group shadow-lg hover:shadow-xl"
                     disabled={!isConnected}
                   >
-                    {isMuted ?
-                      <VolumeX className="h-5 w-5 text-zero-warning" /> :
-                      <Volume className="h-5 w-5 text-zero-text" />
-                    }
+                    {isMuted ? (
+                      <VolumeX className="h-7 w-7 text-zero-warning" />
+                    ) : (
+                      <Volume className="h-7 w-7 text-zero-text group-hover:text-zero-blue transition-colors" />
+                    )}
                   </button>
+                  
+                  <div className="flex-1 space-y-3">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step={1}
+                      value={isMuted ? 0 : volume}
+                      onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                      disabled={isMuted || !isConnected}
+                      className="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                    />
+                    <div className="flex justify-between text-sm text-zero-text/70 font-inter font-medium">
+                      <span>0%</span>
+                      <span className="font-bold text-zero-text">{isMuted ? 'Muted' : `${volume}%`}</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step={1}
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                  disabled={isMuted || !isConnected}
-                  className="w-full"
+              </div>
+            </Card>
+          </div>
+
+          {/* Side Panel */}
+          <div className="space-y-8">
+            {/* Stream Quality */}
+            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
+              <div className="p-8">
+                <h4 className="text-xl font-playfair font-bold text-zero-text mb-6 flex items-center gap-3">
+                  <Signal className="h-6 w-6 text-zero-green" />
+                  Stream Quality
+                </h4>
+                
+                <AudioLevelMeter
+                  level={audioLevel}
+                  isActive={isConnected && isLive && isPlaying}
+                  className="mb-6"
+                  mediaStreamTrack={remoteMediaStreamTrack}
                 />
-                <div className="text-sm text-zero-text/60 mt-1">
-                  {isMuted ? 'Muted' : `${volume}%`}
+
+                <div className="space-y-4 text-sm font-inter">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Connection</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-zero-status-good animate-pulse' : 'bg-red-500'}`}></div>
+                      <span className={`font-bold ${isConnected ? 'text-zero-status-good' : 'text-red-600'}`}>
+                        {isConnected ? 'Connected' : 'Disconnected'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Stream Status</span>
+                    <span className={`font-bold ${isLive ? 'text-zero-status-good' : 'text-gray-600'}`}>
+                      {isLive ? 'Live' : 'Offline'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Audio Status</span>
+                    <span className={`font-bold ${isPlaying ? 'text-zero-status-good' : 'text-gray-600'}`}>
+                      {isPlaying ? 'Playing' : 'Paused'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Audio Level Display */}
-          <Card className="bg-white/80 backdrop-blur-sm p-6 shadow-lg">
-            <h3 className="text-xl font-playfair font-semibold text-zero-text mb-6">
-              Stream Quality
-            </h3>
+            {/* Language Service */}
+            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
+              <div className="p-8">
+                <h4 className="text-xl font-playfair font-bold text-zero-text mb-6">Language Service</h4>
+                
+                <div className="space-y-4 text-sm font-inter">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Language</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-4 bg-gradient-to-r from-blue-600 to-red-600 rounded-sm"></div>
+                      <span className="font-bold text-zero-text">English</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Interpreter</span>
+                    <span className="font-bold text-zero-text">Professional</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                    <span className="text-zero-text/70 font-medium">Audio Track</span>
+                    <span className={`font-bold ${remoteAudioTrack ? 'text-zero-status-good' : 'text-gray-600'}`}>
+                      {remoteAudioTrack ? 'Active' : 'Waiting...'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-            <AudioLevelMeter
-              level={audioLevel}
-              isActive={isConnected && isLive}
-              className="mb-4"
-              mediaStreamTrack={remoteMediaStreamTrack}
-            />
-
-            <div className="space-y-3 text-sm font-inter">
-              <div className="flex justify-between">
-                <span className="text-zero-text/70">Bitrate:</span>
-                <span className="font-medium">320 kbps</span>
+            {/* Session Info */}
+            <Card className="bg-gradient-to-br from-zero-green/10 to-zero-blue/10 backdrop-blur-xl border-0 rounded-3xl shadow-xl">
+              <div className="p-8">
+                <h4 className="text-xl font-playfair font-bold text-zero-text mb-6">Session Information</h4>
+                
+                <div className="space-y-3 text-sm font-inter">
+                  <div className="flex justify-between">
+                    <span className="text-zero-text/70 font-medium">Event</span>
+                    <span className="font-bold text-zero-text">Green & Blue Festival</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zero-text/70 font-medium">Platform</span>
+                    <span className="font-bold text-zero-text">Rafiky</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zero-text/70 font-medium">Server</span>
+                    <span className="font-bold text-zero-text">EU-West-1</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zero-text/70 font-medium">Status</span>
+                    <span className={`font-bold ${isConnected ? 'text-zero-status-good' : 'text-zero-warning'}`}>
+                      {isConnected ? 'Connected' : 'Connecting...'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zero-text/70">Latency:</span>
-                <span className="font-medium text-zero-status-good">Low (45ms)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zero-text/70">Connection:</span>
-                <span className="font-medium text-zero-status-good">Stable</span>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
 
         {/* Help Section */}
-        <Card className="mt-8 bg-white/60 backdrop-blur-sm p-6 shadow-lg">
-          <h3 className="text-lg font-playfair font-semibold text-zero-text mb-4">
-            Need Help?
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm font-inter text-zero-text/70">
-            <div>
-              <strong>Audio Issues:</strong>
-              <p>Check your device volume and internet connection</p>
-            </div>
-            <div>
-              <strong>Connection Problems:</strong>
-              <p>Try refreshing the page or rejoining the stream</p>
-            </div>
-            <div>
-              <strong>Support:</strong>
-              <p>Contact our technical support team for assistance</p>
+        <Card className="mt-12 bg-white/70 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
+          <div className="p-8">
+            <h3 className="text-2xl font-playfair font-bold text-zero-text mb-8">
+              Need Assistance?
+            </h3>
+            <div className="grid md:grid-cols-3 gap-8 text-sm font-inter">
+              <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                <div className="w-12 h-12 bg-zero-blue/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Volume className="h-6 w-6 text-zero-blue" />
+                </div>
+                <div className="font-bold text-zero-text mb-2">Audio Issues</div>
+                <p className="text-zero-text/70 leading-relaxed">Check your device volume and internet connection for optimal audio quality</p>
+              </div>
+              <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                <div className="w-12 h-12 bg-zero-green/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Wifi className="h-6 w-6 text-zero-green" />
+                </div>
+                <div className="font-bold text-zero-text mb-2">Connection Problems</div>
+                <p className="text-zero-text/70 leading-relaxed">Try refreshing the page or rejoining the stream if you experience issues</p>
+              </div>
+              <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                <div className="w-12 h-12 bg-zero-navy/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-6 w-6 text-zero-navy" />
+                </div>
+                <div className="font-bold text-zero-text mb-2">Technical Support</div>
+                <p className="text-zero-text/70 leading-relaxed">Contact our technical support team for immediate assistance</p>
+              </div>
             </div>
           </div>
         </Card>
       </main>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 28px;
+          width: 28px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #A6B92B, #4A90E2);
+          cursor: pointer;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+          border: 3px solid white;
+          transition: all 0.3s ease;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+          transform: scale(1.1);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .slider::-moz-range-thumb {
+          height: 28px;
+          width: 28px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #A6B92B, #4A90E2);
+          cursor: pointer;
+          border: 3px solid white;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider {
+          background: linear-gradient(to right, #A6B92B 0%, #A6B92B ${volume}%, #e5e7eb ${volume}%, #e5e7eb 100%) !important;
+        }
+      `}</style>
     </div>
   );
 };
