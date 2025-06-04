@@ -1,16 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import OnAirIndicator from '@/components/OnAirIndicator';
 import AudioLevelMeter from '@/components/AudioLevelMeter';
 import ListenerCountBadge from '@/components/ListenerCountBadge';
-import { Mic, MicOff, ArrowLeft, RefreshCcw, Monitor, Radio, BarChart3, Settings, Wifi, Clock, Users, Signal, Activity, Globe, Headphones } from 'lucide-react';
+import { Mic, MicOff, ArrowLeft, RefreshCcw, Monitor, Radio, BarChart3, Settings, Wifi, Clock, Users, Signal, Activity, Globe, Headphones, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import AgoraRTC from 'agora-rtc-sdk-ng';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 
+// Async Agora SDK loader
+const loadAgoraSDK = async () => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const AgoraRTC = await import('agora-rtc-sdk-ng');
+    return AgoraRTC.default;
+  } catch (error) {
+    console.error('Failed to load Agora SDK:', error);
+    throw error;
+  }
+};
+
 const Broadcast = () => {
+  // Loading state for async components
+  const [isSDKLoading, setIsSDKLoading] = useState(true);
+  const [sdkError, setSDKError] = useState(null);
+  const [AgoraRTC, setAgoraRTC] = useState(null);
+
+  // Basic state
   const [isLive, setIsLive] = useState(false);
   const [isMicConnected, setIsMicConnected] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
@@ -19,45 +37,349 @@ const Broadcast = () => {
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [client, setClient] = useState(null);
 
-  // Initialize Agora client
+  // Enhanced monitoring state
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [networkQuality, setNetworkQuality] = useState('good');
+  const [sessionId, setSessionId] = useState(null);
+
+  // Refs for cleanup
+  const isComponentMountedRef = useRef(true);
+  const reconnectTimeoutRef = useRef(null);
+  const streamStartTimeRef = useRef(null);
+  const maxReconnectAttempts = 8;
+
+  // Generate persistent session ID for this broadcast
   useEffect(() => {
-    const agoraClient = AgoraRTC.createClient({ 
-      mode: 'live', 
-      codec: 'vp8',
-      role: 'host' // Set default role as host
-    });
-    setClient(agoraClient);
+    const id = `broadcast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(id);
+  }, []);
 
-    // Set up event listeners for user join/leave
-    agoraClient.on('user-joined', () => {
-      // setListenerCount(prev => prev + 1);
-    });
+  // Load Agora SDK asynchronously
+  useEffect(() => {
+    let isMounted = true;
 
-    agoraClient.on('user-left', () => {
-      // setListenerCount(prev => Math.max(0, prev - 1));
-    });
+    const initializeSDK = async () => {
+      try {
+        setIsSDKLoading(true);
+        const sdk = await loadAgoraSDK();
+        
+        if (isMounted) {
+          setAgoraRTC(sdk);
+          setIsSDKLoading(false);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSDKError(error.message);
+          setIsSDKLoading(false);
+          toast.error('Failed to load broadcasting components. Please refresh the page.');
+        }
+      }
+    };
+
+    initializeSDK();
 
     return () => {
-      agoraClient.removeAllListeners();
+      isMounted = false;
     };
   }, []);
 
-  // Initialize microphone
+  // Enhanced reconnection function with session persistence
+  const attemptReconnection = useCallback(async () => {
+    if (!client || !isComponentMountedRef.current || reconnectAttempts >= maxReconnectAttempts) return;
+
+    setIsReconnecting(true);
+    setReconnectAttempts(prev => prev + 1);
+
+    const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), 10000); // Progressive backoff
+
+    reconnectTimeoutRef.current = setTimeout(async () => {
+      if (!isComponentMountedRef.current) return;
+
+      try {
+        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
+
+        // Try to rejoin and republish with same session context
+        await client.leave().catch(() => {}); // Ignore errors
+        await client.setClientRole('host');
+        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
+        
+        if (localAudioTrack) {
+          await client.publish(localAudioTrack);
+        }
+
+        setConnectionStatus('connected');
+        setIsReconnecting(false);
+        setReconnectAttempts(0);
+        
+        toast.success('Broadcast reconnected successfully! Listeners will reconnect automatically.', { 
+          id: 'reconnected',
+          duration: 4000
+        });
+
+      } catch (error) {
+        console.error('Reconnection failed:', error);
+        if (reconnectAttempts < maxReconnectAttempts - 1) {
+          attemptReconnection(); // Try again
+        } else {
+          setIsReconnecting(false);
+          setConnectionStatus('error');
+          toast.error('Broadcast connection failed. Please restart the broadcast.', { 
+            id: 'reconnect-failed',
+            duration: 8000
+          });
+        }
+      }
+    }, delay);
+  }, [client, localAudioTrack, reconnectAttempts, maxReconnectAttempts]);
+
+  // Handle connection loss with enhanced detection
+  const handleConnectionLoss = useCallback(() => {
+    if (!isComponentMountedRef.current || isReconnecting) return;
+
+    console.log('Broadcast connection lost - attempting reconnection');
+    setConnectionStatus('disconnected');
+    
+    toast.warning('Broadcast connection lost. Reconnecting automatically...', {
+      id: 'connection-lost',
+      duration: 5000
+    });
+
+    // Start reconnection if still live
+    if (isLive && reconnectAttempts < maxReconnectAttempts) {
+      attemptReconnection();
+    }
+  }, [isLive, isReconnecting, reconnectAttempts, attemptReconnection, maxReconnectAttempts]);
+
+  // Initialize Agora client (only after SDK is loaded)
+  useEffect(() => {
+    if (!AgoraRTC || isSDKLoading) return;
+
+    const agoraClient = AgoraRTC.createClient({ 
+      mode: 'live', 
+      codec: 'vp8',
+      role: 'host'
+    });
+    setClient(agoraClient);
+
+    // Enhanced event listeners
+    agoraClient.on('user-joined', (user) => {
+      console.log('User joined:', user.uid);
+    });
+
+    agoraClient.on('user-left', (user) => {
+      console.log('User left:', user.uid);
+    });
+
+    // Monitor connection state changes with better handling
+    agoraClient.on('connection-state-changed', (curState, revState, reason) => {
+      console.log('Connection state changed:', curState, 'from:', revState, 'reason:', reason);
+      
+      if (curState === 'CONNECTED') {
+        setConnectionStatus('connected');
+        setNetworkQuality('good'); // Reset network quality on reconnect
+      } else if (curState === 'DISCONNECTED' && isLive && connectionStatus === 'connected') {
+        handleConnectionLoss();
+      } else if (curState === 'RECONNECTING') {
+        setConnectionStatus('reconnecting');
+        toast.info('Connection unstable, attempting to stabilize...', {
+          id: 'reconnecting',
+          duration: 3000
+        });
+      }
+    });
+
+    // Handle exceptions with better categorization
+    agoraClient.on('exception', (evt) => {
+      console.error('Agora exception:', evt);
+      
+      if (evt.code === 'NETWORK_ERROR' && isLive && connectionStatus === 'connected') {
+        setNetworkQuality('poor');
+        handleConnectionLoss();
+      } else if (evt.code === 'MEDIA_ERROR') {
+        toast.error('Microphone error detected. Please check your audio device.', {
+          id: 'media-error',
+          duration: 6000
+        });
+        setIsMicConnected(false);
+      }
+    });
+
+    // Enhanced network quality monitoring
+    agoraClient.on('network-quality', (stats) => {
+      if (stats.uplinkNetworkQuality) {
+        if (stats.uplinkNetworkQuality >= 4) {
+          setNetworkQuality('poor');
+          toast.warning('Poor network quality detected. Consider checking your connection.', {
+            id: 'network-warning',
+            duration: 4000
+          });
+        } else if (stats.uplinkNetworkQuality >= 3) {
+          setNetworkQuality('fair');
+        } else {
+          setNetworkQuality('good');
+        }
+      }
+    });
+
+    return () => {
+      isComponentMountedRef.current = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      agoraClient.removeAllListeners();
+    };
+  }, [AgoraRTC, isSDKLoading]);
+
+  // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
+    if (!AgoraRTC) {
+      toast.error('Audio system not ready. Please wait and try again.');
+      return;
+    }
+
     try {
-      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      // Check for existing permissions first
+      const permissions = await navigator.permissions.query({ name: 'microphone' });
+      
+      if (permissions.state === 'denied') {
+        toast.error('Microphone permission denied. Please allow microphone access in your browser settings.');
+        return;
+      }
+
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        encoderConfig: {
+          sampleRate: 48000,
+          stereo: true,
+          bitrate: 128,
+        },
+        ANS: true, // Automatic Noise Suppression
+        AEC: true, // Acoustic Echo Cancellation
+        AGC: true, // Automatic Gain Control
+      });
+      
       setLocalAudioTrack(audioTrack);
       setIsMicConnected(true);
-      toast.success("Microphone connected successfully!");
+      toast.success("Microphone connected successfully with noise cancellation!");
       
-      // Start monitoring audio levels
+      // Monitor audio levels with enhanced detection
       audioTrack.on("audio-volume-indication", (level) => {
-        setMicLevel(level);
+        setMicLevel(Math.min(level * 100, 100)); // Normalize to 0-100
       });
+
     } catch (error) {
       console.error("Error accessing microphone:", error);
       setIsMicConnected(false);
-      toast.error("Failed to access microphone. Please check permissions.");
+      
+      let errorMessage = "Failed to access microphone. ";
+      if (error.name === 'NotAllowedError') {
+        errorMessage += "Please allow microphone permissions and try again.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += "No microphone device found. Please check your audio devices.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage += "Microphone is being used by another application.";
+      } else {
+        errorMessage += "Please check your microphone connection and try again.";
+      }
+      
+      toast.error(errorMessage, { duration: 8000 });
+    }
+  };
+
+  // Enhanced start broadcast with session tracking
+  const handleStartStream = async () => {
+    try {
+      if (!isMicConnected) {
+        toast.info("Initializing microphone...");
+        await initializeMicrophone();
+        
+        if (!isMicConnected) {
+          toast.error("Cannot start broadcast without microphone access");
+          return;
+        }
+      }
+
+      const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+      const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+      const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
+
+      await client.setClientRole('host');
+      await client.join(APP_ID, CHANNEL_NAME, TOKEN);
+      await client.publish(localAudioTrack);
+      
+      setIsLive(true);
+      setConnectionStatus('connected');
+      setStreamDuration(0);
+      setReconnectAttempts(0); // Reset on successful start
+      streamStartTimeRef.current = Date.now();
+      
+      // Send session start notification to backend (if you have this endpoint)
+      try {
+        await fetch('/api/broadcast/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            sessionId,
+            startTime: streamStartTimeRef.current 
+          })
+        });
+      } catch (err) {
+        console.log('Session tracking not available:', err);
+      }
+      
+      toast.success("🎙️ Broadcast started successfully! Listeners can now connect.", {
+        duration: 4000
+      });
+
+    } catch (error) {
+      console.error("Error starting stream:", error);
+      toast.error(`Failed to start broadcast: ${error.message}`);
+    }
+  };
+
+  // Enhanced stop broadcast with session cleanup
+  const handleStopStream = async () => {
+    try {
+      if (localAudioTrack) {
+        await client.unpublish(localAudioTrack);
+      }
+      
+      await client.leave();
+      
+      setIsLive(false);
+      setConnectionStatus('disconnected');
+      setStreamDuration(0);
+      setReconnectAttempts(0);
+      
+      // Clear reconnect timeout if active
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        setIsReconnecting(false);
+      }
+
+      // Send session end notification to backend
+      try {
+        await fetch('/api/broadcast/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            sessionId,
+            endTime: Date.now(),
+            duration: streamDuration
+          })
+        });
+      } catch (err) {
+        console.log('Session tracking not available:', err);
+      }
+      
+      toast.info("Broadcast stopped. Thank you for your interpretation!", { duration: 4000 });
+
+    } catch (error) {
+      console.error("Error stopping stream:", error);
+      toast.error("Failed to stop stream properly");
     }
   };
 
@@ -70,17 +392,46 @@ const Broadcast = () => {
     };
   }, [localAudioTrack]);
 
-  // Stream duration timer
+  // Stream duration timer with pause on disconnect
   useEffect(() => {
-    if (!isLive) return;
+    if (!isLive || connectionStatus !== 'connected') return;
     
     const interval = setInterval(() => {
       setStreamDuration(prev => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
+  }, [isLive, connectionStatus]);
+
+  // Enhanced listener count monitoring
+  useEffect(() => {
+    const fetchListenerCount = async () => {
+      try {
+        const res = await getBroadcastInfoRequest();
+        const count = res.data?.data?.audience_total || 0;
+        setListenerCount(count);
+        
+        // Alert if listener count drops significantly while live
+        if (isLive && count === 0) {
+          console.warn('No listeners detected while broadcasting');
+        }
+      } catch (error) {
+        console.error('Error fetching listener count:', error?.response?.data?.message || error.message);
+      }
+    };
+
+    fetchListenerCount();
+    const interval = setInterval(fetchListenerCount, 3000); // More frequent updates
+    return () => clearInterval(interval);
   }, [isLive]);
 
+  // Initialize microphone on component mount (only after SDK loads)
+  useEffect(() => {
+    if (!AgoraRTC || isSDKLoading) return;
+    initializeMicrophone();
+  }, [AgoraRTC, isSDKLoading]);
+
+  // Utility functions
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -92,58 +443,54 @@ const Broadcast = () => {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStartStream = async () => {
-    try {
-      // If microphone is not connected, try to connect it first
-      if (!isMicConnected) {
-        toast.info("Requesting microphone access...");
-        await initializeMicrophone();
-        
-        // If still not connected after trying to initialize, show error
-        if (!isMicConnected) {
-          toast.error("Please allow microphone access to start broadcasting");
-          return;
-        }
-      }
-
-      const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-      const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-      const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
-
-      // Join the channel as a host
-      await client.setClientRole('host'); // Set role as host using string value
-      await client.join(APP_ID, CHANNEL_NAME, TOKEN);
-      
-      // Publish the local audio track
-      await client.publish(localAudioTrack);
-      
-      setIsLive(true);
-      setStreamDuration(0);
-      // setListenerCount(0); // Reset listener count when starting new stream
-      toast.success("Stream started successfully!");
-    } catch (error) {
-      console.error("Error starting stream:", error);
-      toast.error("Failed to start stream");
+  const getNetworkColor = () => {
+    switch (networkQuality) {
+      case 'good': return 'text-green-600';
+      case 'fair': return 'text-yellow-600';
+      case 'poor': return 'text-red-600';
+      default: return 'text-gray-600';
     }
   };
 
-  const handleStopStream = async () => {
-    try {
-      // Unpublish the local audio track
-      if (localAudioTrack) {
-        await client.unpublish(localAudioTrack);
-      }
-      
-      // Leave the channel
-      await client.leave();
-      
-      setIsLive(false);
-      setStreamDuration(0);
-      // setListenerCount(0);
-      toast.info("Stream stopped");
-    } catch (error) {
-      console.error("Error stopping stream:", error);
-      toast.error("Failed to stop stream");
+  const getConnectionStatusConfig = () => {
+    if (isReconnecting) {
+      return {
+        icon: Clock,
+        text: `Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`,
+        className: 'text-blue-600 bg-blue-50',
+        iconClass: 'text-blue-600 animate-spin'
+      };
+    }
+
+    switch (connectionStatus) {
+      case 'connected':
+        return {
+          icon: CheckCircle,
+          text: 'Connected',
+          className: 'text-green-600 bg-green-50',
+          iconClass: 'text-green-600'
+        };
+      case 'reconnecting':
+        return {
+          icon: RefreshCcw,
+          text: 'Reconnecting',
+          className: 'text-blue-600 bg-blue-50',
+          iconClass: 'text-blue-600 animate-spin'
+        };
+      case 'error':
+        return {
+          icon: AlertCircle,
+          text: 'Connection Failed',
+          className: 'text-red-600 bg-red-50',
+          iconClass: 'text-red-600'
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          text: 'Disconnected',
+          className: 'text-gray-600 bg-gray-50',
+          iconClass: 'text-gray-600'
+        };
     }
   };
 
@@ -165,24 +512,61 @@ const Broadcast = () => {
     await initializeMicrophone();
   };
 
-  useEffect(() => {
-    initializeMicrophone();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await getBroadcastInfoRequest();
-        setListenerCount(res.data?.data?.audience_total || 1);
-      } catch (error) {
-          console.error(`Getting An Error While Fetching Listener Count`,error?.response?.data?.message || error.message);
-      }
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
+  const handleForceReconnect = async () => {
+    if (isLive) {
+      setReconnectAttempts(0);
+      handleConnectionLoss();
     }
-  }, []);
+  };
+
+  const statusConfig = getConnectionStatusConfig();
+  const StatusIcon = statusConfig.icon;
+
+  // Loading component for async SDK loading
+  const LoadingComponent = () => (
+    <div className="min-h-screen bg-zero-beige flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-zero-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <h2 className="text-xl font-inter font-semibold text-zero-text mb-2">
+          Loading Broadcasting System
+        </h2>
+        <p className="text-zero-text/70 font-inter">
+          Initializing professional audio streaming components...
+        </p>
+      </div>
+    </div>
+  );
+
+  // Error component for SDK loading failure
+  const ErrorComponent = () => (
+    <div className="min-h-screen bg-zero-beige flex items-center justify-center">
+      <div className="text-center max-w-md mx-auto p-8">
+        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-600" />
+        <h2 className="text-xl font-inter font-semibold text-zero-text mb-2">
+          Broadcasting System Unavailable
+        </h2>
+        <p className="text-zero-text/70 font-inter mb-6">
+          Failed to load broadcasting components: {sdkError}
+        </p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
+        >
+          Refresh Page
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Show loading component while SDK is loading
+  if (isSDKLoading) {
+    return <LoadingComponent />;
+  }
+
+  // Show error component if SDK failed to load
+  if (sdkError) {
+    return <ErrorComponent />;
+  }
 
   return (
     <div className="min-h-screen bg-zero-beige">
@@ -202,11 +586,45 @@ const Broadcast = () => {
           </div>
           
           <div className="flex items-center gap-6">
+            {/* Connection Status in Header */}
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${statusConfig.className}`}>
+              <StatusIcon className={`w-4 h-4 ${statusConfig.iconClass}`} />
+              {statusConfig.text}
+            </div>
             {isLive && <OnAirIndicator isLive={isLive} />}
             {isLive && <ListenerCountBadge count={listenerCount} />}
           </div>
         </div>
       </header>
+
+      {/* Connection Alert Banner */}
+      {(isReconnecting || connectionStatus === 'error') && (
+        <div className={`w-full p-4 ${
+          isReconnecting ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
+        } border-b`}>
+          <div className="container mx-auto flex items-center gap-3">
+            <StatusIcon className={`h-5 w-5 ${statusConfig.iconClass}`} />
+            <div>
+              <p className={`font-semibold ${
+                isReconnecting ? 'text-blue-800' : 'text-red-800'
+              }`}>
+                {isReconnecting 
+                  ? 'Reconnecting to broadcast service...'
+                  : 'Broadcast service connection failed'
+                }
+              </p>
+              <p className={`text-sm ${
+                isReconnecting ? 'text-blue-600' : 'text-red-600'
+              }`}>
+                {isReconnecting 
+                  ? 'Your broadcast will resume automatically. Listeners will reconnect when service is restored.'
+                  : 'Please check your connection and try restarting the broadcast.'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto p-8 max-w-7xl">
@@ -214,7 +632,6 @@ const Broadcast = () => {
         <div className="mb-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-zero-green/20 via-zero-blue/10 to-zero-navy/20 backdrop-blur-sm shadow-2xl border border-white/20">
           <div className="absolute inset-0 bg-gradient-to-r from-zero-green/5 to-zero-blue/5"></div>
           <div className="relative p-12">
-            {/* Festival Image Placeholder */}
             <div className="mb-8 h-32 bg-gradient-to-r from-zero-green to-zero-blue rounded-2xl flex items-center justify-center shadow-lg">
               <div className="text-center text-white">
                 <h3 className="text-2xl font-playfair font-bold">GB FESTIVAL</h3>
@@ -233,15 +650,15 @@ const Broadcast = () => {
               <div className="flex items-center justify-center gap-6 flex-wrap">
                 <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
                   <Mic className="h-5 w-5 text-zero-blue" />
-                  <span className="font-semibold text-zero-text font-inter">English Interpretation</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-                  <Signal className="h-5 w-5 text-zero-green" />
                   <span className="font-semibold text-zero-text font-inter">Professional Audio</span>
                 </div>
                 <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-                  <Globe className="h-5 w-5 text-zero-navy" />
-                  <span className="font-semibold text-zero-text font-inter">Live Broadcasting</span>
+                  <Signal className="h-5 w-5 text-zero-green" />
+                  <span className="font-semibold text-zero-text font-inter">Auto-Recovery</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                  <Wifi className="h-5 w-5 text-zero-navy" />
+                  <span className="font-semibold text-zero-text font-inter">Enhanced Stability</span>
                 </div>
               </div>
             </div>
@@ -327,22 +744,22 @@ const Broadcast = () => {
             </div>
           </Card>
 
-          {/* Connection Quality */}
+          {/* Network Quality */}
           <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
             <div className="p-8">
               <div className="flex items-center justify-between mb-6">
                 <div className="p-4 bg-emerald-50 rounded-2xl">
                   <Wifi className="h-8 w-8 text-emerald-600" />
                 </div>
-                <Signal className="h-6 w-6 text-emerald-600" />
+                <Signal className={`h-6 w-6 ${getNetworkColor()}`} />
               </div>
               
               <div className="space-y-3">
-                <div className="text-lg font-bold text-zero-status-good font-inter">
-                  Excellent
+                <div className={`text-lg font-bold font-inter ${getNetworkColor()}`}>
+                  {networkQuality}
                 </div>
                 <div className="text-xs text-zero-text/60 font-inter">
-                  1.2 Mbps • 45ms latency
+                  Network Quality
                 </div>
               </div>
             </div>
@@ -363,8 +780,8 @@ const Broadcast = () => {
                   {!isLive ? (
                     <Button 
                       onClick={handleStartStream}
-                      disabled={!isMicConnected}
-                      className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
+                      disabled={!isMicConnected || isReconnecting}
+                      className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                       size="lg"
                     >
                       <Mic className="mr-4 h-10 w-10" />
@@ -383,15 +800,36 @@ const Broadcast = () => {
                   )}
                 </div>
 
+                {/* Connection Controls */}
+                {(connectionStatus === 'error' || isReconnecting) && (
+                  <div className="space-y-4">
+                    <Button
+                      onClick={handleForceReconnect}
+                      className="w-full bg-blue-600 text-white hover:bg-blue-700 font-inter font-semibold py-4 rounded-xl"
+                      disabled={isReconnecting}
+                    >
+                      <RefreshCcw className={`mr-2 h-5 w-5 ${isReconnecting ? 'animate-spin' : ''}`} />
+                      {isReconnecting ? 'Reconnecting...' : 'Force Reconnect'}
+                    </Button>
+                  </div>
+                )}
+
                 {!isMicConnected && (
                   <div className="text-center bg-orange-50 p-8 rounded-3xl border border-orange-200">
                     <MicOff className="h-12 w-12 mx-auto mb-4 text-orange-600" />
                     <p className="text-orange-800 font-bold text-lg font-inter">Microphone Required</p>
                     <p className="text-sm text-orange-600 mt-2 font-inter">Connect your microphone to start broadcasting</p>
+                    <Button
+                      onClick={handleReconnect}
+                      className="mt-4 bg-orange-600 text-white hover:bg-orange-700 font-inter font-semibold px-6 py-2 rounded-xl"
+                    >
+                      <Mic className="mr-2 h-4 w-4" />
+                      Retry Connection
+                    </Button>
                   </div>
                 )}
 
-                {/* Microphone Test */}
+                {/* Audio Monitor */}
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="text-2xl font-playfair font-bold text-zero-text">
@@ -402,6 +840,7 @@ const Broadcast = () => {
                       variant="outline"
                       size="sm"
                       className="border-zero-navy text-zero-navy hover:bg-zero-navy hover:text-white font-inter font-medium"
+                      disabled={isLive}
                     >
                       {isMicConnected ? 'Disconnect' : 'Connect'}
                     </Button>
@@ -411,7 +850,7 @@ const Broadcast = () => {
                     level={micLevel}
                     isActive={isMicConnected}
                     className="mb-6"
-                    mediaStreamTrack={localAudioTrack?.mediaStreamTrack || undefined}
+                    mediaStreamTrack={localAudioTrack?.getMediaStreamTrack() || undefined}
                   />
                   
                   <p className="text-sm text-zero-text/60 font-inter text-center">
@@ -455,8 +894,10 @@ const Broadcast = () => {
                   
                   <div className="space-y-6">
                     <div className="p-4 bg-gray-50 rounded-2xl">
-                      <span className="text-zero-text/70 font-medium block mb-1">Server</span>
-                      <div className="font-bold text-lg text-zero-text">EU-West-1</div>
+                      <span className="text-zero-text/70 font-medium block mb-1">Connection</span>
+                      <div className={`font-bold text-lg ${getNetworkColor()}`}>
+                        {networkQuality}
+                      </div>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-2xl">
                       <span className="text-zero-text/70 font-medium block mb-1">Listeners</span>
@@ -478,20 +919,49 @@ const Broadcast = () => {
                     </h4>
                     <div className="space-y-4 text-sm font-inter">
                       <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
-                        <span className="text-zero-text/70 font-medium">Peak Listeners</span>
-                        <span className="font-bold text-lg text-zero-text">{Math.max(listenerCount, 1)}</span>
+                        <span className="text-zero-text/70 font-medium">Connection Status</span>
+                        <span className={`font-bold text-lg ${connectionStatus === 'connected' ? 'text-zero-status-good' : 'text-zero-warning'}`}>
+                          {connectionStatus === 'connected' ? 'Stable' : 'Reconnecting'}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-green-50 rounded-xl">
-                        <span className="text-zero-text/70 font-medium">Session Duration</span>
-                        <span className="font-bold text-lg text-zero-text">{formatDuration(streamDuration)}</span>
+                        <span className="text-zero-text/70 font-medium">Network Quality</span>
+                        <span className={`font-bold text-lg ${getNetworkColor()}`}>
+                          {networkQuality}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl">
-                        <span className="text-zero-text/70 font-medium">Audio Track</span>
-                        <span className={`font-bold text-lg ${localAudioTrack ? 'text-zero-status-good' : 'text-gray-600'}`}>
-                          {localAudioTrack ? 'Active' : 'Inactive'}
+                        <span className="text-zero-text/70 font-medium">Reconnection Attempts</span>
+                        <span className="font-bold text-lg text-zero-text">
+                          {reconnectAttempts}/{maxReconnectAttempts}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl">
+                        <span className="text-zero-text/70 font-medium">Session ID</span>
+                        <span className="font-mono text-xs text-zero-text/80">
+                          {sessionId?.slice(-8) || 'N/A'}
                         </span>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Connection Issues Warning */}
+                {(connectionStatus === 'error' || reconnectAttempts >= maxReconnectAttempts) && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      <span className="font-bold text-red-800">Critical Connection Issues</span>
+                    </div>
+                    <p className="text-sm text-red-700 mb-4">
+                      The broadcast has experienced connection problems. Listeners may be affected.
+                    </p>
+                    <Button
+                      onClick={handleStopStream}
+                      className="w-full bg-red-600 text-white hover:bg-red-700 font-inter font-semibold py-2 rounded-xl"
+                    >
+                      Stop and Restart Broadcast
+                    </Button>
                   </div>
                 )}
               </div>
@@ -503,7 +973,7 @@ const Broadcast = () => {
         <Card className="mt-12 bg-gradient-to-br from-zero-green/5 to-zero-blue/5 backdrop-blur-xl border-0 rounded-3xl shadow-2xl">
           <div className="p-10">
             <h3 className="text-3xl font-playfair font-bold text-zero-text mb-10 text-center">
-              Professional Broadcasting Excellence
+              Professional Broadcasting with Enhanced Auto-Recovery
             </h3>
             <div className="grid md:grid-cols-4 gap-8 text-sm font-inter">
               <div className="text-center p-8 bg-white/60 rounded-3xl">
@@ -511,28 +981,28 @@ const Broadcast = () => {
                   <Mic className="h-8 w-8 text-zero-blue" />
                 </div>
                 <div className="font-bold text-zero-text mb-3 text-lg">Audio Excellence</div>
-                <p className="text-zero-text/70 leading-relaxed">Use professional microphone and maintain consistent volume levels for optimal quality</p>
+                <p className="text-zero-text/70 leading-relaxed">Professional microphone with noise suppression and automatic quality monitoring</p>
               </div>
               <div className="text-center p-8 bg-white/60 rounded-3xl">
                 <div className="w-16 h-16 bg-zero-green/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Settings className="h-8 w-8 text-zero-green" />
+                  <Wifi className="h-8 w-8 text-zero-green" />
                 </div>
-                <div className="font-bold text-zero-text mb-3 text-lg">Environment</div>
-                <p className="text-zero-text/70 leading-relaxed">Choose quiet space with minimal echo and background noise for crystal clear audio</p>
+                <div className="font-bold text-zero-text mb-3 text-lg">Smart Recovery</div>
+                <p className="text-zero-text/70 leading-relaxed">Advanced reconnection system maintains broadcast stability and automatically resumes listener connections</p>
               </div>
               <div className="text-center p-8 bg-white/60 rounded-3xl">
                 <div className="w-16 h-16 bg-zero-navy/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Wifi className="h-8 w-8 text-zero-navy" />
+                  <Activity className="h-8 w-8 text-zero-navy" />
                 </div>
-                <div className="font-bold text-zero-text mb-3 text-lg">Stability</div>
-                <p className="text-zero-text/70 leading-relaxed">Ensure stable internet connection for uninterrupted streaming and reliability</p>
+                <div className="font-bold text-zero-text mb-3 text-lg">Real-time Monitoring</div>
+                <p className="text-zero-text/70 leading-relaxed">Comprehensive connection monitoring with network quality assessment and listener tracking</p>
               </div>
               <div className="text-center p-8 bg-white/60 rounded-3xl">
                 <div className="w-16 h-16 bg-zero-warning/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <BarChart3 className="h-8 w-8 text-zero-warning" />
+                  <Settings className="h-8 w-8 text-zero-warning" />
                 </div>
-                <div className="font-bold text-zero-text mb-3 text-lg">Monitoring</div>
-                <p className="text-zero-text/70 leading-relaxed">Keep track of audio levels and audience engagement for professional delivery</p>
+                <div className="font-bold text-zero-text mb-3 text-lg">Professional Interface</div>
+                <p className="text-zero-text/70 leading-relaxed">Streamlined controls optimized for professional interpretation with session tracking</p>
               </div>
             </div>
           </div>
