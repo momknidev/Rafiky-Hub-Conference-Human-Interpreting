@@ -1112,14 +1112,7 @@ const Listner = () => {
                     </h4>
                     
                     <div className="space-y-4 text-sm">
-                      {browserInfo && (
-                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <span className="font-medium text-zero-text/70">Browser</span>
-                          <span className={`font-bold ${browserInfo.supported ? 'text-green-600' : 'text-orange-600'}`}>
-                            {browserInfo.name} {browserInfo.version} {browserInfo.supported ? '✅' : '⚠️'}
-                          </span>
-                        </div>
-                      )}
+                      
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium text-zero-text/70">Service Status</span>
@@ -1216,14 +1209,6 @@ const Listner = () => {
                     We'll respond to your inquiry as soon as possible. Click below to open your email client.
                   </p>
                   
-                  {browserInfo && (
-                    <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
-                      <p className="text-blue-700">
-                        <strong>Include this info:</strong> {browserInfo.name} {browserInfo.version}, 
-                        WebRTC: {browserInfo.hasWebRTC ? 'Yes' : 'No'}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 
