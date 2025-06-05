@@ -971,7 +971,6 @@ const Listner = () => {
                     <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
                       {streamStatus.status === 'live' ? 'Live Stream Active' : 
                        streamStatus.status === 'loading' ? 'Loading Service' :
-                       streamStatus.status === 'error' ? 'Connection Error' :
                        streamStatus.status === 'reconnecting' ? 'Reconnecting' :
                        streamStatus.status === 'waiting' ? 'Connecting Audio' :
                        'Stream Offline'}
@@ -1014,55 +1013,11 @@ const Listner = () => {
                         disabled
                       >
                         <Radio className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                        {streamStatus.status === 'loading' ? 'Loading Audio System...' : 
-                         streamStatus.status === 'reconnecting' ? 'Reconnecting...' :
-                         streamStatus.status === 'error' ? 'Connection Failed' :
-                         streamStatus.status === 'waiting' ? 'Establishing Audio...' :
-                         'Waiting For Broadcaster...'}
+                         Waiting For Broadcaster...
                       </Button>
                     )}
 
-                    {/* Error Recovery Actions */}
-                    {(streamStatus.status === 'error' || reconnectCount >= maxReconnectAttempts) && (
-                      <div className="mt-4 space-y-2">
-                        <Button
-                          onClick={() => window.location.reload()}
-                          className="w-full bg-red-600 text-white hover:bg-red-700 font-inter font-semibold py-3 rounded-xl"
-                        >
-                          Refresh Page
-                        </Button>
-                        
-                        {browserInfo && !browserInfo.supported && (
-                          <div className="bg-blue-50 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Chrome className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm font-semibold text-blue-800">Recommended</span>
-                            </div>
-                            <p className="text-xs text-blue-600">
-                              Switch to Google Chrome browser for better compatibility
-                            </p>
-                          </div>
-                        )}
-                        
-                        <p className="text-xs text-red-600">
-                          If problems persist, contact: info@rafiky.net
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Debug Info for troubleshooting */}
-                    {(streamStatus.status === 'error' || streamStatus.status === 'waiting') && browserInfo && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-left">
-                        <div className="font-semibold mb-1">Technical Info:</div>
-                        <div>Browser: {browserInfo.name} {browserInfo.version}</div>
-                        <div>WebRTC: {browserInfo.hasWebRTC ? 'Yes' : 'No'}</div>
-                        <div>SDK: {isSDKLoading ? 'Loading' : 'Ready'}</div>
-                        <div>Connected: {isConnected ? 'Yes' : 'No'}</div>
-                        <div>Broadcaster: {broadcasterOnline ? 'Online' : 'Offline'}</div>
-                        <div>Audio: {remoteAudioTrack ? 'Available' : 'None'}</div>
-                        <div>Attempts: {reconnectCount}/{maxReconnectAttempts}</div>
-                      </div>
-                    )}
+                    
                   </div>
                 </Card>
 
