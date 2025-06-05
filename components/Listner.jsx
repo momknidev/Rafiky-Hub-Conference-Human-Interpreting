@@ -861,16 +861,7 @@ const Listner = () => {
               Live English Interpretation Service
             </h1>
             
-            {/* Browser Info Bar */}
-            {browserInfo && (
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-4 ${
-                browserInfo.supported ? 'text-green-700 bg-green-50' : 'text-orange-700 bg-orange-50'
-              }`}>
-                <Monitor className="w-3 h-3" />
-                {browserInfo.name} {browserInfo.version} {browserInfo.supported ? '✅' : '⚠️'}
-              </div>
-            )}
-            
+  
             {/* Status Indicators */}
             <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
               {isSDKLoading ? (
@@ -895,7 +886,6 @@ const Listner = () => {
                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
                     streamStatus.status === 'live' ? 'text-green-600 bg-green-50' :
                     streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-blue-50' :
-                    streamStatus.status === 'error' ? 'text-red-600 bg-red-50' :
                     streamStatus.status === 'loading' ? 'text-blue-600 bg-blue-50' :
                     'text-orange-600 bg-orange-50'
                   }`}>
@@ -908,7 +898,6 @@ const Listner = () => {
                     )}
                     {streamStatus.status === 'live' ? 'Connected' :
                      streamStatus.status === 'reconnecting' ? `Reconnecting (${reconnectCount}/${maxReconnectAttempts})` :
-                     streamStatus.status === 'error' ? 'Error' :
                      streamStatus.status === 'loading' ? 'Loading' :
                      streamStatus.status === 'waiting' ? 'Connecting Audio' :
                      'Offline'}
@@ -928,23 +917,6 @@ const Listner = () => {
                   <p className="text-sm text-blue-600">
                     Attempt {reconnectCount} of {maxReconnectAttempts} - Audio will resume automatically
                   </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {streamStatus.status === 'error' && (
-            <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <div>
-                  <p className="font-semibold text-red-800">Connection Issue</p>
-                  <p className="text-sm text-red-600">{streamStatus.message}</p>
-                  {browserInfo && !browserInfo.supported && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Try using Chrome browser for better compatibility
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -1123,8 +1095,7 @@ const Listner = () => {
                             ? 'bg-zero-status-good animate-pulse' 
                             : 'bg-gray-400'
                         }`}></div>
-                        {streamStatus.status === 'live' && isPlaying ? 'Audio Active' : 
-                         streamStatus.status === 'error' ? 'Connection Error' :
+                        {streamStatus.status === 'live' && isPlaying ? 'Audio Active' :
                          streamStatus.status === 'loading' ? 'Initializing' : 
                          streamStatus.status === 'reconnecting' ? 'Reconnecting' :
                          'Audio Inactive'}
@@ -1154,12 +1125,10 @@ const Listner = () => {
                         <span className="font-medium text-zero-text/70">Service Status</span>
                         <span className={`font-bold ${
                           streamStatus.status === 'live' ? 'text-green-600' :
-                          streamStatus.status === 'error' ? 'text-red-600' :
                           streamStatus.status === 'reconnecting' ? 'text-blue-600' :
                           'text-orange-600'
                         }`}>
                           {streamStatus.status === 'live' ? 'Connected' :
-                           streamStatus.status === 'error' ? 'Error' :
                            streamStatus.status === 'reconnecting' ? 'Reconnecting' :
                            streamStatus.status === 'loading' ? 'Loading' :
                            'Connecting'}
