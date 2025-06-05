@@ -43,6 +43,7 @@ const Broadcast = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [networkQuality, setNetworkQuality] = useState('good');
   const [sessionId, setSessionId] = useState(null);
+  const [connectionError, setConnectionError] = useState(null);
 
   // Refs for cleanup
   const isComponentMountedRef = useRef(true);
@@ -63,6 +64,7 @@ const Broadcast = () => {
     const initializeSDK = async () => {
       try {
         setIsSDKLoading(true);
+        setConnectionError(null);
         const sdk = await loadAgoraSDK();
         
         if (isMounted) {
@@ -72,6 +74,7 @@ const Broadcast = () => {
       } catch (error) {
         if (isMounted) {
           setSDKError(error.message);
+          setConnectionError('Failed to load broadcasting components');
           setIsSDKLoading(false);
           toast.error('Failed to load broadcasting components. Please refresh the page.');
         }
@@ -91,6 +94,7 @@ const Broadcast = () => {
 
     setIsReconnecting(true);
     setReconnectAttempts(prev => prev + 1);
+    setConnectionError(null);
 
     const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), 10000); // Progressive backoff
 
@@ -101,6 +105,10 @@ const Broadcast = () => {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
         const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
         const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
+
+        if (!APP_ID || !CHANNEL_NAME) {
+          throw new Error('Missing broadcast configuration');
+        }
 
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => {}); // Ignore errors
@@ -114,6 +122,7 @@ const Broadcast = () => {
         setConnectionStatus('connected');
         setIsReconnecting(false);
         setReconnectAttempts(0);
+        setConnectionError(null);
         
         toast.success('Broadcast reconnected successfully! Listeners will reconnect automatically.', { 
           id: 'reconnected',
@@ -122,11 +131,14 @@ const Broadcast = () => {
 
       } catch (error) {
         console.error('Reconnection failed:', error);
+        setConnectionError(`Reconnection failed: ${error.message}`);
+        
         if (reconnectAttempts < maxReconnectAttempts - 1) {
           attemptReconnection(); // Try again
         } else {
           setIsReconnecting(false);
           setConnectionStatus('error');
+          setConnectionError('Max reconnection attempts reached');
           toast.error('Broadcast connection failed. Please restart the broadcast.', { 
             id: 'reconnect-failed',
             duration: 8000
@@ -142,6 +154,7 @@ const Broadcast = () => {
 
     console.log('Broadcast connection lost - attempting reconnection');
     setConnectionStatus('disconnected');
+    setConnectionError('Connection lost');
     
     toast.warning('Broadcast connection lost. Reconnecting automatically...', {
       id: 'connection-lost',
@@ -180,6 +193,7 @@ const Broadcast = () => {
       
       if (curState === 'CONNECTED') {
         setConnectionStatus('connected');
+        setConnectionError(null);
         setNetworkQuality('good'); // Reset network quality on reconnect
       } else if (curState === 'DISCONNECTED' && isLive && connectionStatus === 'connected') {
         handleConnectionLoss();
@@ -189,12 +203,16 @@ const Broadcast = () => {
           id: 'reconnecting',
           duration: 3000
         });
+      } else if (curState === 'FAILED') {
+        setConnectionError(`Connection failed: ${reason}`);
+        setConnectionStatus('error');
       }
     });
 
     // Handle exceptions with better categorization
     agoraClient.on('exception', (evt) => {
       console.error('Agora exception:', evt);
+      setConnectionError(`Broadcast error: ${evt.code} - ${evt.msg || 'Unknown error'}`);
       
       if (evt.code === 'NETWORK_ERROR' && isLive && connectionStatus === 'connected') {
         setNetworkQuality('poor');
@@ -263,6 +281,7 @@ const Broadcast = () => {
       
       setLocalAudioTrack(audioTrack);
       setIsMicConnected(true);
+      setConnectionError(null);
       toast.success("Microphone connected successfully with noise cancellation!");
       
       // Monitor audio levels with enhanced detection
@@ -273,6 +292,7 @@ const Broadcast = () => {
     } catch (error) {
       console.error("Error accessing microphone:", error);
       setIsMicConnected(false);
+      setConnectionError(`Microphone error: ${error.message}`);
       
       let errorMessage = "Failed to access microphone. ";
       if (error.name === 'NotAllowedError') {
@@ -289,7 +309,7 @@ const Broadcast = () => {
     }
   };
 
-  // Enhanced start broadcast with session tracking
+  // Enhanced start broadcast with session tracking and timeout
   const handleStartStream = async () => {
     try {
       if (!isMicConnected) {
@@ -302,18 +322,35 @@ const Broadcast = () => {
         }
       }
 
+      // Validate environment variables
       const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
       const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
       const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
 
-      await client.setClientRole('host');
-      await client.join(APP_ID, CHANNEL_NAME, TOKEN);
-      await client.publish(localAudioTrack);
+      if (!APP_ID || !CHANNEL_NAME) {
+        toast.error("Broadcast configuration error. Please check environment settings.");
+        return;
+      }
+
+      // Add connection timeout
+      const connectionTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 15000)
+      );
+
+      const connectPromise = async () => {
+        await client.setClientRole('host');
+        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
+        await client.publish(localAudioTrack);
+      };
+
+      // Race between connection and timeout
+      await Promise.race([connectPromise(), connectionTimeout]);
       
       setIsLive(true);
       setConnectionStatus('connected');
       setStreamDuration(0);
       setReconnectAttempts(0); // Reset on successful start
+      setConnectionError(null);
       streamStartTimeRef.current = Date.now();
       
       // Send session start notification to backend (if you have this endpoint)
@@ -336,7 +373,25 @@ const Broadcast = () => {
 
     } catch (error) {
       console.error("Error starting stream:", error);
-      toast.error(`Failed to start broadcast: ${error.message}`);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to start broadcast: ";
+      if (error.message.includes('timeout')) {
+        errorMessage += "Connection timeout. Please check your network connection.";
+      } else if (error.message.includes('INVALID_CHANNEL')) {
+        errorMessage += "Invalid channel configuration. Please contact support.";
+      } else if (error.message.includes('TOKEN_EXPIRED')) {
+        errorMessage += "Session expired. Please refresh the page.";
+      } else {
+        errorMessage += error.message;
+      }
+      
+      setConnectionError(errorMessage);
+      toast.error(errorMessage, { duration: 8000 });
+      
+      // Reset state on failure
+      setIsLive(false);
+      setConnectionStatus('error');
     }
   };
 
@@ -353,6 +408,7 @@ const Broadcast = () => {
       setConnectionStatus('disconnected');
       setStreamDuration(0);
       setReconnectAttempts(0);
+      setConnectionError(null);
       
       // Clear reconnect timeout if active
       if (reconnectTimeoutRef.current) {
@@ -379,6 +435,7 @@ const Broadcast = () => {
 
     } catch (error) {
       console.error("Error stopping stream:", error);
+      setConnectionError(`Stop error: ${error.message}`);
       toast.error("Failed to stop stream properly");
     }
   };
@@ -515,6 +572,7 @@ const Broadcast = () => {
   const handleForceReconnect = async () => {
     if (isLive) {
       setReconnectAttempts(0);
+      setConnectionError(null);
       handleConnectionLoss();
     }
   };
@@ -546,14 +604,19 @@ const Broadcast = () => {
           Broadcasting System Unavailable
         </h2>
         <p className="text-zero-text/70 font-inter mb-6">
-          Failed to load broadcasting components: {sdkError}
+          Failed to load broadcasting components: {sdkError || connectionError}
         </p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
-        >
-          Refresh Page
-        </Button>
+        <div className="space-y-3">
+          <Button
+            onClick={() => window.location.reload()}
+            className="w-full bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
+          >
+            Refresh Page
+          </Button>
+          <p className="text-xs text-gray-600">
+            If the problem persists, try a different browser or check your network connection
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -598,7 +661,7 @@ const Broadcast = () => {
       </header>
 
       {/* Connection Alert Banner */}
-      {(isReconnecting || connectionStatus === 'error') && (
+      {(isReconnecting || connectionStatus === 'error' || connectionError) && (
         <div className={`w-full p-4 ${
           isReconnecting ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
         } border-b`}>
@@ -616,10 +679,10 @@ const Broadcast = () => {
               <p className={`text-sm ${
                 isReconnecting ? 'text-blue-600' : 'text-red-600'
               }`}>
-                {isReconnecting 
+                {connectionError || (isReconnecting 
                   ? 'Your broadcast will resume automatically. Listeners will reconnect when service is restored.'
                   : 'Please check your connection and try restarting the broadcast.'
-                }
+                )}
               </p>
             </div>
           </div>
@@ -801,7 +864,7 @@ const Broadcast = () => {
                 </div>
 
                 {/* Connection Controls */}
-                {(connectionStatus === 'error' || isReconnecting) && (
+                {(connectionStatus === 'error' || isReconnecting || connectionError) && (
                   <div className="space-y-4">
                     <Button
                       onClick={handleForceReconnect}
@@ -811,6 +874,11 @@ const Broadcast = () => {
                       <RefreshCcw className={`mr-2 h-5 w-5 ${isReconnecting ? 'animate-spin' : ''}`} />
                       {isReconnecting ? 'Reconnecting...' : 'Force Reconnect'}
                     </Button>
+                    {connectionError && (
+                      <div className="text-center bg-red-50 p-4 rounded-xl">
+                        <p className="text-sm text-red-600">{connectionError}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -947,14 +1015,14 @@ const Broadcast = () => {
                 )}
 
                 {/* Connection Issues Warning */}
-                {(connectionStatus === 'error' || reconnectAttempts >= maxReconnectAttempts) && (
+                {(connectionStatus === 'error' || reconnectAttempts >= maxReconnectAttempts || connectionError) && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-3">
                       <AlertCircle className="h-5 w-5 text-red-600" />
                       <span className="font-bold text-red-800">Critical Connection Issues</span>
                     </div>
                     <p className="text-sm text-red-700 mb-4">
-                      The broadcast has experienced connection problems. Listeners may be affected.
+                      {connectionError || 'The broadcast has experienced connection problems. Listeners may be affected.'}
                     </p>
                     <Button
                       onClick={handleStopStream}

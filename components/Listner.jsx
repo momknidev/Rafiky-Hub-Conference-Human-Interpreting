@@ -7,12 +7,12 @@ import { toast } from 'sonner';
 import debounce from 'lodash/debounce';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 
-// ⚡ IMMEDIATE LOADING: Show UI within 50ms, load components progressively
+// ⚡ IMMEDIATE UI COMPONENTS
 const OnAirIndicator = lazy(() => import('@/components/OnAirIndicator'));
 const AudioLevelMeter = lazy(() => import('@/components/AudioLevelMeter'));
 const ListenerCountBadge = lazy(() => import('@/components/ListenerCountBadge'));
 
-// ⚡ ZERO TIMEOUT: Progressive Agora SDK loader with background loading
+// ⚡ CRITICAL: Aggressive Agora SDK loading
 let agoraSDKPromise = null;
 const loadAgoraSDK = () => {
   if (!agoraSDKPromise && typeof window !== 'undefined') {
@@ -26,344 +26,8 @@ const loadAgoraSDK = () => {
   return agoraSDKPromise;
 };
 
-// ⚡ IMMEDIATE UI: Shows instantly while everything loads in background
-const ImmediateUI = ({ 
-  isLive, 
-  isPlaying, 
-  isConnected, 
-  isReconnecting, 
-  reconnectCount, 
-  maxReconnectAttempts, 
-  listenerCount, 
-  volume, 
-  isMuted, 
-  isIOS,
-  handlePlayPauseStream, 
-  toggleMute, 
-  handleVolumeChange, 
-  setShowContactModal,
-  sdkLoading = true,
-  remoteMediaStreamTrack,
-  audioLevel
-}) => (
-  <div className="min-h-screen bg-zero-beige">
-    {/* Festival Header - loads immediately */}
-    <div className="w-full overflow-hidden">
-      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-        <img 
-          src="/images/festival-poster.jpg" 
-          alt="Green & Blue Festival - Ripartiamo da Zero - I Numeri per il Futuro del Pianeta"
-          className="w-full h-auto object-cover"
-          loading="eager"
-          width="800"
-          height="400"
-          decoding="async"
-        />
-      </div>
-    </div>
-
-    <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
-      {/* Service Title - immediate */}
-      <div className="text-center mb-10 sm:mb-12">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6">
-          Live English Interpretation Service
-        </h1>
-        
-        {/* Status Indicators with progressive loading */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-          {sdkLoading ? (
-            <>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-blue-600 bg-blue-50">
-                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                Initializing Service
-              </div>
-              <div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-              <div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-            </>
-          ) : (
-            <>
-              <Suspense fallback={<div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
-                <OnAirIndicator isLive={isLive} />
-              </Suspense>
-              <Suspense fallback={<div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
-                <ListenerCountBadge count={listenerCount} />
-              </Suspense>
-              
-              {/* Connection Status - immediate component */}
-              {isReconnecting ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-blue-600 bg-blue-50">
-                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  Reconnecting... ({reconnectCount}/{maxReconnectAttempts})
-                </div>
-              ) : isConnected ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-green-600 bg-green-50">
-                  <CheckCircle className="w-4 h-4" />
-                  Connected
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-orange-600 bg-orange-50">
-                  <AlertCircle className="w-4 h-4" />
-                  {sdkLoading ? 'Connecting...' : 'Disconnected'}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Alert Banners */}
-      {isReconnecting && (
-        <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <div>
-              <p className="font-semibold text-blue-800">
-                Reconnecting to interpretation service...
-              </p>
-              <p className="text-sm text-blue-600">
-                Attempt {reconnectCount} of {maxReconnectAttempts} - Audio will resume automatically
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* iOS Banner - REMOVED as requested */}
-
-      {/* Main Player Section */}
-      <div className="max-w-md lg:max-w-4xl mx-auto">
-        <div className="lg:grid lg:grid-cols-2 lg:gap-10 space-y-8 lg:space-y-0">
-          
-          {/* Left Column - Primary Controls */}
-          <div className="space-y-8">
-            
-            {/* Primary Control Card */}
-            <Card className="bg-white/90 border-0 rounded-2xl">
-              <div className="p-8 text-center">
-                <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
-                  {isPlaying ? (
-                    <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
-                  ) : (
-                    <Play className="h-10 w-10 lg:h-14 lg:w-14 text-white ml-1" />
-                  )}
-                </div>
-                
-                <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
-                  {isLive ? 'Live Stream Active' : 'Stream Offline'}
-                </h3>
-                <p className="text-base lg:text-lg font-inter text-zero-text/70 mb-8">
-                  {isLive ? 'English interpretation in progress' : sdkLoading ? 'Preparing audio system...' : 'Waiting for broadcaster...'}
-                </p>
-
-                {/* Action Buttons */}
-                {isLive && !sdkLoading && (
-                  <Button 
-                    onClick={handlePlayPauseStream}
-                    className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${
-                      isPlaying 
-                        ? 'bg-zero-warning text-white hover:bg-zero-warning/90' 
-                        : 'bg-zero-green text-zero-text hover:bg-zero-green/90'
-                    }`}
-                    size="lg"
-                    disabled={isReconnecting}
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                        Pause Stream
-                      </>
-                    ) : (
-                      <>
-                        <Play className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                        Start Listening
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {(!isLive || sdkLoading) && (
-                  <Button
-                    className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-zero-navy/80 text-white font-bold font-inter rounded-xl"
-                    size="lg"
-                    disabled
-                  >
-                    <Radio className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                    {sdkLoading ? 'Loading Audio System...' : isReconnecting ? 'Reconnecting...' : 'Waiting For Broadcaster...'}
-                  </Button>
-                )}
-              </div>
-            </Card>
-
-            {/* Audio Controls */}
-            <Card className="bg-white/90 border-0 rounded-2xl">
-              <div className="p-8">
-                <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-3">
-                  <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-blue" />
-                  Audio Controls
-                </h4>
-                
-                <div className="flex items-center gap-6">
-                  <button
-                    onClick={toggleMute}
-                    className="p-4 lg:p-5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-300 group"
-                    disabled={!isConnected || isReconnecting || sdkLoading}
-                  >
-                    {isMuted ? (
-                      <VolumeX className="h-6 w-6 lg:h-7 lg:w-7 text-zero-warning" />
-                    ) : (
-                      <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-text group-hover:text-zero-blue transition-colors" />
-                    )}
-                  </button>
-                  
-                  <div className="flex-1 space-y-3">
-                    {!isIOS ? (
-                      <>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          step={1}
-                          value={isMuted ? 0 : volume}
-                          onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                          disabled={isMuted || !isConnected || isReconnecting || sdkLoading}
-                          className="w-full h-3 lg:h-4 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
-                        />
-                        <div className="flex justify-between text-sm lg:text-base text-zero-text/70 font-inter font-medium">
-                          <span>0%</span>
-                          <span className="font-bold text-zero-text">{isMuted ? 'Muted' : `${volume}%`}</span>
-                          <span>100%</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-zero-text/70 font-inter">
-                          Use your device's volume buttons to adjust audio
-                        </p>
-                        <div className="mt-2 text-lg font-bold text-zero-text">
-                          {isMuted ? 'Muted' : 'Volume: Use Device Controls'}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column - Audio Level */}
-          <div className="space-y-8">
-            
-            {/* Audio Level Display */}
-            <Card className="bg-white/90 border-0 rounded-2xl">
-              <div className="p-8">
-                <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-2">
-                  <Signal className="h-5 w-5 lg:h-6 lg:w-6 text-zero-green" />
-                  Audio Level
-                </h4>
-                
-                {sdkLoading ? (
-                  <div className="mb-4">
-                    <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                        <p className="text-sm text-gray-500">Loading audio meter...</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <Suspense fallback={
-                    <div className="mb-4">
-                      <div className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>
-                    </div>
-                  }>
-                    <AudioLevelMeter
-                      level={audioLevel}
-                      isActive={isConnected && isLive && isPlaying && !isReconnecting}
-                      className="mb-4"
-                      mediaStreamTrack={remoteMediaStreamTrack}
-                    />
-                  </Suspense>
-                )}
-
-                <div className="text-center">
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-                    isConnected && isLive && isPlaying && !isReconnecting && !sdkLoading
-                      ? 'bg-zero-status-good/10 text-zero-status-good' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                      isConnected && isLive && isPlaying && !isReconnecting && !sdkLoading
-                        ? 'bg-zero-status-good animate-pulse' 
-                        : 'bg-gray-400'
-                    }`}></div>
-                    {isConnected && isLive && isPlaying && !isReconnecting && !sdkLoading ? 'Audio Active' : sdkLoading ? 'Initializing' : 'Audio Inactive'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Manual Reconnect Control */}
-            {reconnectCount >= maxReconnectAttempts && (
-              <Card className="bg-white/90 border-0 rounded-2xl">
-                <div className="p-8 text-center">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-600" />
-                  <h4 className="text-xl font-inter font-bold text-zero-text mb-4">
-                    Connection Failed
-                  </h4>
-                  <p className="text-sm text-zero-text/70 font-inter mb-6">
-                    Unable to reconnect automatically. Please refresh the page to try again.
-                  </p>
-                  <Button
-                    onClick={() => window.location.reload()}
-                    className="w-full bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold py-3 rounded-xl"
-                  >
-                    <Wifi className="mr-2 h-4 w-4" />
-                    Refresh Page
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            {/* Contact Us Button */}
-            <div className="text-center">
-              <Button 
-                className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
-                onClick={() => setShowContactModal(true)}
-              >
-                Contact Us
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    {/* Service Title */}
-    <div className="text-center py-8 px-4">
-      <p className="text-lg font-inter font-semibold text-zero-text">
-        Green&Blue Festival • Live English Interpretation Service
-      </p>
-    </div>
-
-    {/* Footer */}
-    <div className="w-full overflow-hidden">
-      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-        <img 
-          src="/images/layout.png" 
-          alt="Festival Layout and Sponsors Information"
-          className="w-full h-auto object-cover"
-          loading="lazy"
-          width="1000"
-          height="400"
-          decoding="async"
-        />
-      </div>
-    </div>
-  </div>
-);
-
 const Listner = () => {
-  // ⚡ IMMEDIATE STATE: Available instantly (no blocking)
+  // ⚡ IMMEDIATE STATE
   const [isConnected, setIsConnected] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [listenerCount, setListenerCount] = useState(0);
@@ -373,22 +37,24 @@ const Listner = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
 
-  // ⚡ PROGRESSIVE STATE: Loads in background
+  // 🚨 CRITICAL ERROR TRACKING
+  const [connectionError, setConnectionError] = useState(null);
   const [isSDKLoading, setIsSDKLoading] = useState(true);
-  const [sdkError, setSDKError] = useState(null);
+  const [sdkError, setSdkError] = useState(null);
   const [AgoraRTC, setAgoraRTC] = useState(null);
   const [client, setClient] = useState(null);
   const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
   const [remoteMediaStreamTrack, setRemoteMediaStreamTrack] = useState(undefined);
 
-  // ⚡ RECONNECTION STATE: Enhanced features
+  // 🚨 ENHANCED RECONNECTION
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
   const [wasPlayingBeforeDisconnect, setWasPlayingBeforeDisconnect] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [lastKnownBroadcasterState, setLastKnownBroadcasterState] = useState(null);
+  const [broadcasterOnline, setBroadcasterOnline] = useState(false);
 
-  // ⚡ IMMEDIATE DEVICE DETECTION: No blocking
+  // 🚨 CRITICAL: iOS detection (simplified)
   const [isIOS] = useState(() => {
     if (typeof navigator !== 'undefined') {
       return /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -396,52 +62,359 @@ const Listner = () => {
     return false;
   });
 
-  // ⚡ CONSTANTS: Immediate
-  const maxReconnectAttempts = 15;
-  const heartbeatInterval = 3000;
+  // 🚨 AGGRESSIVE SETTINGS
+  const maxReconnectAttempts = 20; // Increased significantly
+  const heartbeatInterval = 1500; // Faster heartbeat
 
-  // ⚡ REFS: Immediate
   const isComponentMountedRef = useRef(true);
   const hasShownConnectedToastRef = useRef(false);
-  const listenerCountIntervalRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  const connectionCheckIntervalRef = useRef(null);
 
-  // ⚡ BACKGROUND SDK LOADING: Non-blocking with requestIdleCallback
+  // 🚨 EMERGENCY: Load SDK immediately, no delays
   useEffect(() => {
     let isMounted = true;
 
     const initializeSDK = async () => {
       try {
+        setConnectionError(null);
+        console.log('🚨 EMERGENCY: Loading Agora SDK...');
+        
         const sdk = await loadAgoraSDK();
         
         if (isMounted) {
           setAgoraRTC(sdk);
           setIsSDKLoading(false);
+          console.log('✅ Agora SDK loaded successfully');
         }
       } catch (error) {
+        console.error('🚨 CRITICAL: SDK Load failed:', error);
         if (isMounted) {
-          setSDKError(error.message);
+          setSdkError(error.message);
+          setConnectionError('Failed to load streaming system');
           setIsSDKLoading(false);
-          toast.error('Failed to load streaming components. Please refresh the page.');
+          toast.error('Failed to load streaming system. Please refresh the page.');
         }
       }
     };
 
-    // ⚡ ZERO TIMEOUT: Use requestIdleCallback for non-blocking load
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(initializeSDK, { timeout: 5000 });
-    } else {
-      // Minimal delay to let immediate UI render first
-      setTimeout(initializeSDK, 100);
-    }
+    // 🚨 NO DELAYS - Load immediately
+    initializeSDK();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // ⚡ SESSION ID: Non-blocking generation
+  // 🚨 CRITICAL: Enhanced broadcaster detection
+  const checkBroadcasterStatus = useCallback(async () => {
+    try {
+      console.log('🔍 Checking broadcaster status...');
+      const res = await getBroadcastInfoRequest();
+      const data = res.data?.data;
+      
+      if (data) {
+        const currentListeners = data.audience_total || 0;
+        const hostOnline = data.host_online === true;
+        
+        setListenerCount(currentListeners);
+        setBroadcasterOnline(hostOnline);
+        
+        console.log('📊 Broadcaster status:', {
+          hostOnline,
+          listeners: currentListeners,
+          hasAudioTrack: !!remoteAudioTrack,
+          isConnected,
+          isLive
+        });
+
+        // 🚨 CRITICAL: Fix "waiting for broadcaster" issue
+        if (hostOnline && isConnected && !isLive && !remoteAudioTrack) {
+          console.log('🚨 CRITICAL: Broadcaster online but no audio track - forcing reconnection');
+          setConnectionError('Broadcaster detected but audio not received - reconnecting...');
+          if (!isReconnecting && reconnectCount < maxReconnectAttempts) {
+            attemptReconnection();
+          }
+        }
+
+        // Clear errors if broadcaster comes online
+        if (hostOnline && connectionError) {
+          setConnectionError(null);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Broadcaster status check failed:', error);
+      if (!isReconnecting) {
+        setConnectionError('Unable to check broadcaster status');
+      }
+    }
+  }, [isConnected, isLive, remoteAudioTrack, isReconnecting, reconnectCount, connectionError]);
+
+  // 🚨 CRITICAL: Aggressive reconnection
+  const attemptReconnection = useCallback(async () => {
+    if (!client || !isComponentMountedRef.current || reconnectCount >= maxReconnectAttempts) {
+      console.log('🚨 Reconnection stopped:', { client: !!client, mounted: isComponentMountedRef.current, attempts: reconnectCount });
+      return;
+    }
+
+    setIsReconnecting(true);
+    setReconnectCount(prev => prev + 1);
+    setConnectionError(null);
+
+    console.log(`🔄 Attempting reconnection ${reconnectCount + 1}/${maxReconnectAttempts}`);
+
+    // Faster reconnection - shorter delays
+    const delay = Math.min(500 * Math.pow(1.2, reconnectCount), 3000);
+
+    reconnectTimeoutRef.current = setTimeout(async () => {
+      if (!isComponentMountedRef.current) return;
+
+      try {
+        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
+
+        console.log('🔧 Reconnection config:', { APP_ID: !!APP_ID, CHANNEL_NAME: !!CHANNEL_NAME, TOKEN: !!TOKEN });
+
+        if (!APP_ID || !CHANNEL_NAME) {
+          throw new Error('Missing Agora configuration');
+        }
+
+        // Force clean reconnection
+        await client.leave().catch(() => {});
+        await client.setClientRole('audience');
+        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
+        
+        setIsConnected(true);
+        setIsReconnecting(false);
+        setReconnectCount(0);
+        setConnectionError(null);
+        
+        console.log('✅ Reconnection successful');
+        toast.success('Reconnected successfully!', { id: 'reconnected' });
+
+      } catch (error) {
+        console.error(`❌ Reconnection ${reconnectCount + 1} failed:`, error);
+        setConnectionError(`Reconnection failed: ${error.message}`);
+        
+        if (reconnectCount < maxReconnectAttempts - 1) {
+          console.log('🔄 Scheduling next reconnection attempt...');
+          attemptReconnection();
+        } else {
+          setIsReconnecting(false);
+          setConnectionError('Connection failed after maximum attempts. Please refresh the page.');
+          toast.error('Connection failed. Please refresh the page.', { 
+            id: 'reconnect-failed',
+            action: {
+              label: 'Refresh',
+              onClick: () => window.location.reload()
+            }
+          });
+        }
+      }
+    }, delay);
+  }, [client, reconnectCount, maxReconnectAttempts]);
+
+  // 🚨 CRITICAL: Handle disconnection with immediate response
+  const handleDisconnection = useCallback(() => {
+    if (!isComponentMountedRef.current) return;
+
+    console.log('🚨 Connection lost detected');
+    setWasPlayingBeforeDisconnect(isPlaying);
+    setIsConnected(false);
+    setIsLive(false);
+    setIsPlaying(false);
+    setConnectionError('Connection lost - attempting to reconnect...');
+    
+    if (remoteAudioTrack) {
+      remoteAudioTrack.stop();
+      setRemoteAudioTrack(null);
+    }
+    setRemoteMediaStreamTrack(undefined);
+
+    if (!isReconnecting && reconnectCount < maxReconnectAttempts) {
+      toast.info('Connection lost. Reconnecting...', { id: 'reconnecting' });
+      attemptReconnection();
+    }
+  }, [isPlaying, remoteAudioTrack, isReconnecting, reconnectCount, attemptReconnection, maxReconnectAttempts]);
+
+  // 🚨 CRITICAL: Enhanced Agora client setup
+  useEffect(() => {
+    if (!AgoraRTC || isSDKLoading) return;
+
+    console.log('🚀 Initializing Agora client...');
+
+    const agoraClient = AgoraRTC.createClient({
+      mode: 'live',
+      codec: 'vp8',
+      role: 'audience'
+    });
+    setClient(agoraClient);
+
+    // 🚨 CRITICAL: Enhanced event handlers
+    agoraClient.on('user-published', async (user, mediaType) => {
+      console.log('👤 User published:', user.uid, mediaType);
+      
+      if (mediaType === 'audio' && isComponentMountedRef.current) {
+        try {
+          console.log('🎵 Subscribing to audio...');
+          await agoraClient.subscribe(user, mediaType);
+          const audioTrack = user.audioTrack;
+          const track = audioTrack.getMediaStreamTrack();
+          
+          audioTrack.setVolume(isMuted ? 0 : volume);
+          
+          setRemoteMediaStreamTrack(track);
+          setRemoteAudioTrack(audioTrack);
+          setIsLive(true);
+          setConnectionError(null);
+          
+          console.log('✅ Audio track received and configured');
+          
+          // Auto-resume if was playing before
+          if (wasPlayingBeforeDisconnect) {
+            try {
+              await audioTrack.play();
+              setIsPlaying(true);
+              setWasPlayingBeforeDisconnect(false);
+              toast.success('Audio resumed automatically', { id: 'auto-resume' });
+            } catch (playError) {
+              console.log('Auto-resume failed, manual play required:', playError);
+            }
+          }
+          
+          if (!isReconnecting) {
+            toast.success("🎙️ Broadcaster is live!", { id: 'broadcaster-live' });
+          }
+        } catch (error) {
+          console.error('❌ Error subscribing to audio:', error);
+          setConnectionError(`Failed to connect to audio: ${error.message}`);
+          toast.error("Failed to connect to broadcaster audio", { id: 'connection-error' });
+        }
+      }
+    });
+
+    agoraClient.on('user-unpublished', (user, mediaType) => {
+      console.log('👤 User unpublished:', user.uid, mediaType);
+      
+      if (mediaType === 'audio' && isComponentMountedRef.current) {
+        setIsLive(false);
+        setIsPlaying(false);
+        if (!isReconnecting) {
+          toast.info("Broadcaster stopped", { id: 'broadcaster-stopped' });
+        }
+      }
+    });
+
+    agoraClient.on('connection-state-changed', (curState, revState, reason) => {
+      console.log('🔄 Connection state changed:', curState, 'from:', revState, 'reason:', reason);
+      
+      if (curState === 'CONNECTED') {
+        setConnectionError(null);
+        setIsConnected(true);
+      } else if (curState === 'DISCONNECTED' && isConnected && !isReconnecting) {
+        handleDisconnection();
+      } else if (curState === 'FAILED') {
+        setConnectionError(`Connection failed: ${reason}`);
+        handleDisconnection();
+      } else if (curState === 'RECONNECTING') {
+        setConnectionError('Connection unstable, reconnecting...');
+      }
+    });
+
+    agoraClient.on('exception', (evt) => {
+      console.error('🚨 Agora exception:', evt);
+      setConnectionError(`Stream error: ${evt.code} - ${evt.msg || 'Unknown error'}`);
+      
+      if ((evt.code === 'NETWORK_ERROR' || evt.code === 'UNEXPECTED_ERROR') && isConnected && !isReconnecting) {
+        handleDisconnection();
+      }
+    });
+
+    // 🚨 CRITICAL: Join channel with comprehensive error handling
+    const joinChannel = async () => {
+      try {
+        console.log('🔗 Joining channel...');
+        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
+
+        console.log('🔧 Channel config:', { 
+          APP_ID: APP_ID ? 'Set' : 'Missing', 
+          CHANNEL_NAME: CHANNEL_NAME ? 'Set' : 'Missing',
+          TOKEN: TOKEN ? 'Set' : 'None'
+        });
+
+        if (!APP_ID || !CHANNEL_NAME) {
+          throw new Error('Missing required Agora configuration (APP_ID or CHANNEL_NAME)');
+        }
+
+        await agoraClient.setClientRole('audience');
+        await agoraClient.join(APP_ID, CHANNEL_NAME, TOKEN);
+        
+        if (isComponentMountedRef.current && !hasShownConnectedToastRef.current) {
+          setIsConnected(true);
+          setConnectionError(null);
+          hasShownConnectedToastRef.current = true;
+          
+          console.log('✅ Successfully joined channel');
+          toast.success("Connected to interpretation service", { id: 'channel-connected' });
+          
+          // Start monitoring
+          startHeartbeat();
+        }
+      } catch (error) {
+        console.error("❌ Error joining channel:", error);
+        if (isComponentMountedRef.current) {
+          setConnectionError(`Failed to join: ${error.message}`);
+          toast.error("Failed to connect to interpretation service", { id: 'channel-error' });
+          
+          // 🚨 CRITICAL: Retry connection
+          setTimeout(() => {
+            if (isComponentMountedRef.current && !isConnected) {
+              console.log('🔄 Retrying channel join...');
+              joinChannel();
+            }
+          }, 2000);
+        }
+      }
+    };
+
+    joinChannel();
+
+    return () => {
+      console.log('🧹 Cleaning up Agora client...');
+      isComponentMountedRef.current = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      stopHeartbeat();
+      agoraClient.removeAllListeners();
+      if (remoteAudioTrack) {
+        remoteAudioTrack.stop();
+      }
+      agoraClient.leave().catch(console.error);
+    };
+  }, [AgoraRTC, isSDKLoading, isMuted, volume]);
+
+  // 🚨 CRITICAL: Enhanced heartbeat monitoring
+  const startHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) return;
+
+    console.log('💓 Starting enhanced heartbeat monitoring...');
+    heartbeatIntervalRef.current = setInterval(checkBroadcasterStatus, heartbeatInterval);
+  }, [checkBroadcasterStatus, heartbeatInterval]);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+      console.log('💓 Heartbeat monitoring stopped');
+    }
+  }, []);
+
+  // 🚨 CRITICAL: Session ID generation
   useEffect(() => {
     const generateSessionId = () => {
       try {
@@ -459,118 +432,20 @@ const Listner = () => {
     generateSessionId();
   }, []);
 
-  // ⚡ ALL ORIGINAL FUNCTIONALITY PRESERVED: Enhanced heartbeat system
-  const startHeartbeat = useCallback(() => {
-    if (heartbeatIntervalRef.current) return;
-
-    heartbeatIntervalRef.current = setInterval(async () => {
-      if (!isComponentMountedRef.current) return;
-
-      try {
-        const res = await getBroadcastInfoRequest();
-        const broadcasterStatus = res.data?.data;
-        
-        if (isComponentMountedRef.current) {
-          setListenerCount(broadcasterStatus?.audience_total || 1);
-          
-          // Check if broadcaster restarted (new session)
-          if (lastKnownBroadcasterState && 
-              broadcasterStatus?.session_id && 
-              lastKnownBroadcasterState.session_id !== broadcasterStatus.session_id) {
-            
-            console.log('Broadcaster restarted detected, attempting auto-reconnect');
-            handleBroadcasterRestart();
-          }
-          
-          setLastKnownBroadcasterState(broadcasterStatus);
-        }
-      } catch (error) {
-        console.error('Heartbeat error:', error);
-      }
-    }, heartbeatInterval);
-  }, [lastKnownBroadcasterState]);
-
-  const stopHeartbeat = useCallback(() => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current);
-      heartbeatIntervalRef.current = null;
-    }
-  }, []);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Handle broadcaster restart
-  const handleBroadcasterRestart = useCallback(async () => {
-    if (!client || !isComponentMountedRef.current) return;
-
-    console.log('Handling broadcaster restart...');
-    setIsReconnecting(true);
-    
-    toast.info('Broadcaster restarted. Reconnecting automatically...', { 
-      id: 'broadcaster-restart',
-      duration: 5000 
-    });
-
-    try {
-      // Clean up existing connections
-      if (remoteAudioTrack) {
-        remoteAudioTrack.stop();
-        setRemoteAudioTrack(null);
-      }
-      setRemoteMediaStreamTrack(undefined);
-      setIsLive(false);
-      setIsPlaying(false);
-
-      // Rejoin the channel
-      await client.leave().catch(() => {});
-      
-      const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-      const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-      const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
-
-      await client.setClientRole('audience');
-      await client.join(APP_ID, CHANNEL_NAME, TOKEN);
-      
-      setIsConnected(true);
-      setIsReconnecting(false);
-      setReconnectCount(0);
-      
-      toast.success('Reconnected successfully! Audio will resume when broadcaster is ready.', { 
-        id: 'reconnect-success' 
-      });
-
-    } catch (error) {
-      console.error('Broadcaster restart reconnection failed:', error);
-      setIsReconnecting(false);
-      toast.error('Reconnection failed. Please refresh the page.', { 
-        id: 'reconnect-failed' 
-      });
-    }
-  }, [client, remoteAudioTrack]);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Debounced volume handler
+  // 🚨 CRITICAL: Volume handling
   const debouncedVolumeChange = useCallback(
     debounce((newVolume, audioTrack, muted) => {
       if (audioTrack && !muted) {
         try {
-          if (isIOS) {
-            // iOS workaround: use gain node instead of direct volume control
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(audioTrack.getMediaStreamTrack());
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = newVolume / 100;
-            source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-          } else {
-            audioTrack.setVolume(newVolume);
-          }
+          audioTrack.setVolume(newVolume);
         } catch (error) {
-          console.error('Error setting volume:', error);
+          console.error('Volume control error:', error);
         }
       }
     }, 100),
-    [isIOS]
+    []
   );
 
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Event handlers
   const handleVolumeChange = useCallback((newVolume) => {
     setVolume(newVolume);
     if (!isMuted) {
@@ -578,247 +453,12 @@ const Listner = () => {
     }
   }, [remoteAudioTrack, isMuted, debouncedVolumeChange]);
 
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Enhanced reconnection
-  const attemptReconnection = useCallback(async () => {
-    if (!client || !isComponentMountedRef.current || reconnectCount >= maxReconnectAttempts) return;
-
-    setIsReconnecting(true);
-    setReconnectCount(prev => prev + 1);
-
-    const delay = Math.min(1000 * Math.pow(1.3, reconnectCount), 8000);
-
-    reconnectTimeoutRef.current = setTimeout(async () => {
-      if (!isComponentMountedRef.current) return;
-
-      try {
-        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
-
-        await client.leave().catch(() => {});
-        await client.setClientRole('audience');
-        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
-        
-        setIsConnected(true);
-        setIsReconnecting(false);
-        setReconnectCount(0);
-        
-        toast.success('Reconnected successfully!', { id: 'reconnected' });
-
-      } catch (error) {
-        console.error('Reconnection failed:', error);
-        if (reconnectCount < maxReconnectAttempts - 1) {
-          attemptReconnection();
-        } else {
-          setIsReconnecting(false);
-          toast.error('Connection failed. Please refresh the page.', { 
-            id: 'reconnect-failed',
-            action: {
-              label: 'Refresh',
-              onClick: () => window.location.reload()
-            }
-          });
-        }
-      }
-    }, delay);
-  }, [client, reconnectCount, maxReconnectAttempts]);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Handle disconnection
-  const handleDisconnection = useCallback(() => {
-    if (!isComponentMountedRef.current) return;
-
-    setWasPlayingBeforeDisconnect(isPlaying);
-    setIsConnected(false);
-    setIsLive(false);
-    setIsPlaying(false);
-    
-    if (remoteAudioTrack) {
-      remoteAudioTrack.stop();
-      setRemoteAudioTrack(null);
-    }
-    setRemoteMediaStreamTrack(undefined);
-
-    if (!isReconnecting && reconnectCount < maxReconnectAttempts) {
-      toast.info('Connection lost. Reconnecting...', { id: 'reconnecting' });
-      attemptReconnection();
-    }
-  }, [isPlaying, remoteAudioTrack, isReconnecting, reconnectCount, attemptReconnection, maxReconnectAttempts]);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Auto-resume playback
-  const autoResumePlayback = useCallback(async (audioTrack) => {
-    if (!wasPlayingBeforeDisconnect) return;
-
-    try {
-      await audioTrack.play();
-      setIsPlaying(true);
-      setWasPlayingBeforeDisconnect(false);
-      toast.success('Audio resumed automatically', { id: 'auto-resume' });
-    } catch (error) {
-      console.error('Failed to auto-resume:', error);
-      toast.info('Click play to resume audio', { 
-        id: 'manual-resume',
-        action: {
-          label: 'Play',
-          onClick: () => handlePlayPauseStream()
-        }
-      });
-    }
-  }, [wasPlayingBeforeDisconnect]);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Audio context fix for browser autoplay policies
-  useEffect(() => {
-    const resumeAudioContext = async () => {
-      try {
-        if (window.AudioContext || window.webkitAudioContext) {
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-          }
-        }
-      } catch (error) {
-        console.error('Error resuming audio context:', error);
-      }
-    };
-
-    const handleUserInteraction = () => {
-      resumeAudioContext();
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-    };
-
-    document.addEventListener('click', handleUserInteraction);
-    document.addEventListener('touchstart', handleUserInteraction);
-
-    return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-    };
-  }, []);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Enhanced page visibility handling for mobile browsers
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        if (isLive && remoteAudioTrack && wasPlayingBeforeDisconnect && !isPlaying) {
-          setTimeout(() => {
-            handlePlayPauseStream();
-          }, 500);
-        }
-        
-        if (isConnected) {
-          startHeartbeat();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isLive, remoteAudioTrack, wasPlayingBeforeDisconnect, isPlaying, isConnected, startHeartbeat]);
-
-  // ⚡ ALL ORIGINAL FUNCTIONALITY: Initialize Agora client (only after SDK is loaded)
-  useEffect(() => {
-    if (!AgoraRTC || isSDKLoading) return;
-
-    const agoraClient = AgoraRTC.createClient({
-      mode: 'live',
-      codec: 'vp8',
-      role: 'audience'
-    });
-    setClient(agoraClient);
-
-    // Set up event listeners
-    agoraClient.on('user-published', async (user, mediaType) => {
-      if (mediaType === 'audio' && isComponentMountedRef.current) {
-        try {
-          await agoraClient.subscribe(user, mediaType);
-          const audioTrack = user.audioTrack;
-          const track = audioTrack.getMediaStreamTrack();
-          
-          audioTrack.setVolume(isMuted ? 0 : volume);
-          
-          setRemoteMediaStreamTrack(track);
-          setRemoteAudioTrack(audioTrack);
-          setIsLive(true);
-          
-          await autoResumePlayback(audioTrack);
-          
-          if (!isReconnecting) {
-            toast.success("Broadcaster is live", { id: 'broadcaster-live' });
-          }
-        } catch (error) {
-          console.error('Error in user-published handler:', error);
-          toast.error("Failed to connect to broadcaster", { id: 'connection-error' });
-        }
-      }
-    });
-
-    agoraClient.on('user-unpublished', (user, mediaType) => {
-      if (mediaType === 'audio' && isComponentMountedRef.current) {
-        setIsLive(false);
-        setIsPlaying(false);
-        if (!isReconnecting) {
-          toast.info("Broadcaster stopped", { id: 'broadcaster-stopped' });
-        }
-      }
-    });
-
-    agoraClient.on('connection-state-changed', (curState, revState, reason) => {
-      console.log('Connection state:', curState, 'from:', revState, 'reason:', reason);
-      
-      if (curState === 'DISCONNECTED' && isConnected && !isReconnecting) {
-        handleDisconnection();
-      }
-    });
-
-    agoraClient.on('exception', (evt) => {
-      console.error('Agora exception:', evt);
-      if (evt.code === 'NETWORK_ERROR' && isConnected && !isReconnecting) {
-        handleDisconnection();
-      }
-    });
-
-    // Join channel
-    const joinChannel = async () => {
-      try {
-        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
-
-        await agoraClient.setClientRole('audience');
-        await agoraClient.join(APP_ID, CHANNEL_NAME, TOKEN);
-        
-        if (isComponentMountedRef.current && !hasShownConnectedToastRef.current) {
-          setIsConnected(true);
-          hasShownConnectedToastRef.current = true;
-          startHeartbeat();
-          toast.success("Connected to interpretation service", { id: 'channel-connected' });
-        }
-      } catch (error) {
-        console.error("Error joining channel:", error);
-        if (isComponentMountedRef.current) {
-          toast.error("Failed to connect to interpretation service", { id: 'channel-error' });
-        }
-      }
-    };
-
-    joinChannel();
-
-    return () => {
-      isComponentMountedRef.current = false;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      stopHeartbeat();
-      agoraClient.removeAllListeners();
-      if (remoteAudioTrack) {
-        remoteAudioTrack.stop();
-      }
-      agoraClient.leave().catch(console.error);
-    };
-  }, [AgoraRTC, isSDKLoading]);
-
   const handlePlayPauseStream = useCallback(async () => {
-    if (!remoteAudioTrack) return;
+    if (!remoteAudioTrack) {
+      setConnectionError('No audio stream available');
+      toast.error('No audio stream available. Please check connection.');
+      return;
+    }
     
     try {
       if (isPlaying) {
@@ -830,10 +470,12 @@ const Listner = () => {
         await remoteAudioTrack.play();
         setIsPlaying(true);
         setWasPlayingBeforeDisconnect(true);
+        setConnectionError(null);
         toast.success("Playing stream", { id: 'stream-play' });
       }
     } catch (error) {
-      console.error('Error toggling playback:', error);
+      console.error('Playback error:', error);
+      setConnectionError(`Playback error: ${error.message}`);
       toast.error("Failed to toggle playback", { id: 'playback-error' });
     }
   }, [remoteAudioTrack, isPlaying]);
@@ -852,11 +494,68 @@ const Listner = () => {
       }
       setIsMuted(newMutedState);
     } catch (error) {
-      console.error('Error toggling mute:', error);
+      console.error('Mute error:', error);
+      setConnectionError(`Mute error: ${error.message}`);
     }
   }, [remoteAudioTrack, isMuted, volume]);
 
-  // ⚡ CLEANUP: Comprehensive cleanup
+  // 🚨 CRITICAL: Enhanced page visibility handling
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('📱 Page became visible - checking connection...');
+        
+        if (isLive && remoteAudioTrack && wasPlayingBeforeDisconnect && !isPlaying) {
+          setTimeout(() => {
+            handlePlayPauseStream();
+          }, 500);
+        }
+        
+        if (isConnected) {
+          startHeartbeat();
+        } else {
+          // Force reconnection check when page becomes visible
+          checkBroadcasterStatus();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isLive, remoteAudioTrack, wasPlayingBeforeDisconnect, isPlaying, isConnected, startHeartbeat, checkBroadcasterStatus]);
+
+  // 🚨 CRITICAL: Audio context handling
+  useEffect(() => {
+    const resumeAudioContext = async () => {
+      try {
+        if (window.AudioContext || window.webkitAudioContext) {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            console.log('🔊 Audio context resumed');
+          }
+        }
+      } catch (error) {
+        console.error('Audio context error:', error);
+      }
+    };
+
+    const handleUserInteraction = () => {
+      resumeAudioContext();
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, []);
+
+  // 🚨 CRITICAL: Cleanup
   useEffect(() => {
     return () => {
       debouncedVolumeChange.cancel();
@@ -864,7 +563,7 @@ const Listner = () => {
     };
   }, [debouncedVolumeChange, stopHeartbeat]);
 
-  // ⚡ ERROR HANDLING: Show error state if SDK failed to load
+  // 🚨 CRITICAL: Error state display
   if (sdkError) {
     return (
       <div className="min-h-screen bg-zero-beige flex items-center justify-center">
@@ -876,39 +575,438 @@ const Listner = () => {
           <p className="text-zero-text/70 font-inter mb-6">
             Failed to load interpretation service: {sdkError}
           </p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
-          >
-            Refresh Page
-          </Button>
+          <div className="space-y-3">
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
+            >
+              Refresh Page
+            </Button>
+            <p className="text-xs text-gray-600">
+              If the problem persists, try Chrome, Firefox, or Safari
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ⚡ ZERO TIMEOUT: Return immediate UI (shows within 50ms)
+  // 🚨 CRITICAL: Determine current status for UI
+  const getStreamStatus = () => {
+    if (isSDKLoading) return { status: 'loading', message: 'Loading audio system...' };
+    if (connectionError) return { status: 'error', message: connectionError };
+    if (isReconnecting) return { status: 'reconnecting', message: `Reconnecting... (${reconnectCount}/${maxReconnectAttempts})` };
+    if (!isConnected) return { status: 'disconnected', message: 'Connecting to service...' };
+    if (broadcasterOnline && !isLive) return { status: 'waiting', message: 'Broadcaster online, establishing audio...' };
+    if (isLive) return { status: 'live', message: 'Live stream active' };
+    return { status: 'offline', message: 'Waiting for broadcaster...' };
+  };
+
+  const streamStatus = getStreamStatus();
+
   return (
     <>
-      <ImmediateUI 
-        isLive={isLive}
-        isPlaying={isPlaying}
-        isConnected={isConnected}
-        isReconnecting={isReconnecting}
-        reconnectCount={reconnectCount}
-        maxReconnectAttempts={maxReconnectAttempts}
-        listenerCount={listenerCount}
-        volume={volume}
-        isMuted={isMuted}
-        isIOS={isIOS}
-        handlePlayPauseStream={handlePlayPauseStream}
-        toggleMute={toggleMute}
-        handleVolumeChange={handleVolumeChange}
-        setShowContactModal={setShowContactModal}
-        sdkLoading={isSDKLoading}
-        remoteMediaStreamTrack={remoteMediaStreamTrack}
-        audioLevel={audioLevel}
-      />
+      <div className="min-h-screen bg-zero-beige">
+        {/* Festival Header - loads immediately */}
+        <div className="w-full overflow-hidden">
+          <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+            <img 
+              src="/images/festival-poster.jpg" 
+              alt="Green & Blue Festival - Ripartiamo da Zero - I Numeri per il Futuro del Pianeta"
+              className="w-full h-auto object-cover"
+              loading="eager"
+              width="800"
+              height="400"
+              decoding="async"
+            />
+          </div>
+        </div>
+
+        <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
+          {/* Service Title */}
+          <div className="text-center mb-10 sm:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6">
+              Live English Interpretation Service
+            </h1>
+            
+            {/* Status Indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+              {isSDKLoading ? (
+                <>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-blue-600 bg-blue-50">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    Initializing Service
+                  </div>
+                  <div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                </>
+              ) : (
+                <>
+                  <Suspense fallback={<div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                    <OnAirIndicator isLive={isLive} />
+                  </Suspense>
+                  <Suspense fallback={<div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                    <ListenerCountBadge count={listenerCount} />
+                  </Suspense>
+                  
+                  {/* Connection Status */}
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                    streamStatus.status === 'live' ? 'text-green-600 bg-green-50' :
+                    streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-blue-50' :
+                    streamStatus.status === 'error' ? 'text-red-600 bg-red-50' :
+                    streamStatus.status === 'loading' ? 'text-blue-600 bg-blue-50' :
+                    'text-orange-600 bg-orange-50'
+                  }`}>
+                    {streamStatus.status === 'reconnecting' || streamStatus.status === 'loading' ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    ) : streamStatus.status === 'live' ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" />
+                    )}
+                    {streamStatus.status === 'live' ? 'Connected' :
+                     streamStatus.status === 'reconnecting' ? `Reconnecting (${reconnectCount}/${maxReconnectAttempts})` :
+                     streamStatus.status === 'error' ? 'Error' :
+                     streamStatus.status === 'loading' ? 'Loading' :
+                     streamStatus.status === 'waiting' ? 'Connecting Audio' :
+                     'Offline'}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Alert Banners */}
+          {streamStatus.status === 'reconnecting' && (
+            <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div>
+                  <p className="font-semibold text-blue-800">
+                    Reconnecting to interpretation service...
+                  </p>
+                  <p className="text-sm text-blue-600">
+                    Attempt {reconnectCount} of {maxReconnectAttempts} - Audio will resume automatically
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {streamStatus.status === 'error' && (
+            <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="font-semibold text-red-800">Connection Issue</p>
+                  <p className="text-sm text-red-600">{streamStatus.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Player Section */}
+          <div className="max-w-md lg:max-w-4xl mx-auto">
+            <div className="lg:grid lg:grid-cols-2 lg:gap-10 space-y-8 lg:space-y-0">
+              
+              {/* Left Column - Primary Controls */}
+              <div className="space-y-8">
+                
+                {/* Primary Control Card */}
+                <Card className="bg-white/90 border-0 rounded-2xl">
+                  <div className="p-8 text-center">
+                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
+                      {isPlaying ? (
+                        <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
+                      ) : (
+                        <Play className="h-10 w-10 lg:h-14 lg:w-14 text-white ml-1" />
+                      )}
+                    </div>
+                    
+                    <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
+                      {streamStatus.status === 'live' ? 'Live Stream Active' : 
+                       streamStatus.status === 'loading' ? 'Loading Service' :
+                       streamStatus.status === 'error' ? 'Connection Error' :
+                       streamStatus.status === 'reconnecting' ? 'Reconnecting' :
+                       streamStatus.status === 'waiting' ? 'Connecting Audio' :
+                       'Stream Offline'}
+                    </h3>
+                    
+                    <p className="text-base lg:text-lg font-inter text-zero-text/70 mb-8">
+                      {streamStatus.message}
+                    </p>
+
+                    {/* Action Buttons */}
+                    {streamStatus.status === 'live' && (
+                      <Button 
+                        onClick={handlePlayPauseStream}
+                        className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${
+                          isPlaying 
+                            ? 'bg-zero-warning text-white hover:bg-zero-warning/90' 
+                            : 'bg-zero-green text-zero-text hover:bg-zero-green/90'
+                        }`}
+                        size="lg"
+                        disabled={streamStatus.status === 'reconnecting'}
+                      >
+                        {isPlaying ? (
+                          <>
+                            <Pause className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                            Pause Stream
+                          </>
+                        ) : (
+                          <>
+                            <Play className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                            Start Listening
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {streamStatus.status !== 'live' && (
+                      <Button
+                        className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-zero-navy/80 text-white font-bold font-inter rounded-xl"
+                        size="lg"
+                        disabled
+                      >
+                        <Radio className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                        {streamStatus.status === 'loading' ? 'Loading Audio System...' : 
+                         streamStatus.status === 'reconnecting' ? 'Reconnecting...' :
+                         streamStatus.status === 'error' ? 'Connection Failed' :
+                         streamStatus.status === 'waiting' ? 'Establishing Audio...' :
+                         'Waiting For Broadcaster...'}
+                      </Button>
+                    )}
+
+                    {/* Error Recovery Actions */}
+                    {(streamStatus.status === 'error' || reconnectCount >= maxReconnectAttempts) && (
+                      <div className="mt-4 space-y-2">
+                        <Button
+                          onClick={() => window.location.reload()}
+                          className="w-full bg-red-600 text-white hover:bg-red-700 font-inter font-semibold py-3 rounded-xl"
+                        >
+                          Refresh Page
+                        </Button>
+                        <p className="text-xs text-red-600">
+                          If the problem persists, try switching to a different browser or network
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Debug Info (only shown during issues) */}
+                    {(streamStatus.status === 'error' || streamStatus.status === 'waiting') && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-left">
+                        <div className="font-semibold mb-1">Debug Info:</div>
+                        <div>SDK: {isSDKLoading ? 'Loading' : 'Ready'}</div>
+                        <div>Connected: {isConnected ? 'Yes' : 'No'}</div>
+                        <div>Broadcaster Online: {broadcasterOnline ? 'Yes' : 'No'}</div>
+                        <div>Audio Track: {remoteAudioTrack ? 'Available' : 'None'}</div>
+                        <div>Reconnect Attempts: {reconnectCount}/{maxReconnectAttempts}</div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Audio Controls */}
+                <Card className="bg-white/90 border-0 rounded-2xl">
+                  <div className="p-8">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-3">
+                      <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-blue" />
+                      Audio Controls
+                    </h4>
+                    
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={toggleMute}
+                        className="p-4 lg:p-5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-300 group"
+                        disabled={!isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-6 w-6 lg:h-7 lg:w-7 text-zero-warning" />
+                        ) : (
+                          <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-text group-hover:text-zero-blue transition-colors" />
+                        )}
+                      </button>
+                      
+                      <div className="flex-1 space-y-3">
+                        {!isIOS ? (
+                          <>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step={1}
+                              value={isMuted ? 0 : volume}
+                              onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                              disabled={isMuted || !isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
+                              className="w-full h-3 lg:h-4 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                            />
+                            <div className="flex justify-between text-sm lg:text-base text-zero-text/70 font-inter font-medium">
+                              <span>0%</span>
+                              <span className="font-bold text-zero-text">{isMuted ? 'Muted' : `${volume}%`}</span>
+                              <span>100%</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-zero-text/70 font-inter">
+                              Please use your device's volume buttons to adjust audio level
+                            </p>
+                            <div className="mt-2 text-lg font-bold text-zero-text">
+                              {isMuted ? 'Muted' : 'Volume: Use Device Controls'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Right Column - Audio Level */}
+              <div className="space-y-8">
+                
+                {/* Audio Level Display */}
+                <Card className="bg-white/90 border-0 rounded-2xl">
+                  <div className="p-8">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-2">
+                      <Signal className="h-5 w-5 lg:h-6 lg:w-6 text-zero-green" />
+                      Audio Level
+                    </h4>
+                    
+                    {isSDKLoading ? (
+                      <div className="mb-4">
+                        <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            <p className="text-sm text-gray-500">Loading audio meter...</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Suspense fallback={
+                        <div className="mb-4">
+                          <div className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>
+                        </div>
+                      }>
+                        <AudioLevelMeter
+                          level={audioLevel}
+                          isActive={isConnected && isLive && isPlaying && streamStatus.status !== 'reconnecting'}
+                          className="mb-4"
+                          mediaStreamTrack={remoteMediaStreamTrack}
+                        />
+                      </Suspense>
+                    )}
+
+                    <div className="text-center">
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                        streamStatus.status === 'live' && isPlaying
+                          ? 'bg-zero-status-good/10 text-zero-status-good' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          streamStatus.status === 'live' && isPlaying
+                            ? 'bg-zero-status-good animate-pulse' 
+                            : 'bg-gray-400'
+                        }`}></div>
+                        {streamStatus.status === 'live' && isPlaying ? 'Audio Active' : 
+                         streamStatus.status === 'error' ? 'Connection Error' :
+                         streamStatus.status === 'loading' ? 'Initializing' : 
+                         streamStatus.status === 'reconnecting' ? 'Reconnecting' :
+                         'Audio Inactive'}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Connection Status Details */}
+                <Card className="bg-white/90 border-0 rounded-2xl">
+                  <div className="p-8">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-6">
+                      Connection Status
+                    </h4>
+                    
+                    <div className="space-y-4 text-sm">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium text-zero-text/70">Service Status</span>
+                        <span className={`font-bold ${
+                          streamStatus.status === 'live' ? 'text-green-600' :
+                          streamStatus.status === 'error' ? 'text-red-600' :
+                          streamStatus.status === 'reconnecting' ? 'text-blue-600' :
+                          'text-orange-600'
+                        }`}>
+                          {streamStatus.status === 'live' ? 'Connected' :
+                           streamStatus.status === 'error' ? 'Error' :
+                           streamStatus.status === 'reconnecting' ? 'Reconnecting' :
+                           streamStatus.status === 'loading' ? 'Loading' :
+                           'Connecting'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium text-zero-text/70">Broadcaster</span>
+                        <span className={`font-bold ${broadcasterOnline ? 'text-green-600' : 'text-gray-600'}`}>
+                          {broadcasterOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium text-zero-text/70">Audio Stream</span>
+                        <span className={`font-bold ${isLive ? 'text-green-600' : 'text-gray-600'}`}>
+                          {isLive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium text-zero-text/70">Listeners</span>
+                        <span className="font-bold text-zero-text">{listenerCount}</span>
+                      </div>
+
+                      {reconnectCount > 0 && (
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                          <span className="font-medium text-blue-700">Reconnect Attempts</span>
+                          <span className="font-bold text-blue-800">{reconnectCount}/{maxReconnectAttempts}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Contact Us Button */}
+                <div className="text-center">
+                  <Button 
+                    className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
+                    onClick={() => setShowContactModal(true)}
+                  >
+                    Contact Us
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Service Title */}
+        <div className="text-center py-8 px-4">
+          <p className="text-lg font-inter font-semibold text-zero-text">
+            Green&Blue Festival • Live English Interpretation Service
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="w-full overflow-hidden">
+          <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+            <img 
+              src="/images/layout.png" 
+              alt="Festival Layout and Sponsors Information"
+              className="w-full h-auto object-cover"
+              loading="lazy"
+              width="1000"
+              height="400"
+              decoding="async"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Contact Modal */}
       {showContactModal && (
@@ -957,7 +1055,7 @@ const Listner = () => {
         </div>
       )}
 
-      {/* Optimized CSS - Performance focused */}
+      {/* Optimized CSS */}
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
@@ -994,7 +1092,6 @@ const Listner = () => {
           background: linear-gradient(to right, #A6B92B 0%, #A6B92B ${volume}%, #e5e7eb ${volume}%, #e5e7eb 100%) !important;
         }
 
-        /* Performance optimized animations */
         .animate-spin {
           animation: spin 1s linear infinite;
         }
