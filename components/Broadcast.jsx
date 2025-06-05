@@ -8,6 +8,7 @@ import ListenerCountBadge from '@/components/ListenerCountBadge';
 import { Mic, MicOff, ArrowLeft, RefreshCcw, Monitor, Radio, BarChart3, Settings, Wifi, Clock, Users, Signal, Activity, Globe, Headphones, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
+import { generateToken } from '@/utils/generateToken';
 
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
@@ -104,17 +105,17 @@ const Broadcast = () => {
       try {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
         const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-        const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
-
+        const {token,uid}  = await generateToken("PUBLISHER");
+        
         if (!APP_ID || !CHANNEL_NAME) {
-          throw new Error('Missing broadcast configuration');
+          throw new Error(`Missing broadcast configuration`);
         }
 
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => {}); // Ignore errors
         await client.setClientRole('host');
-        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
-        
+        await client.join(APP_ID, CHANNEL_NAME, toast,uid);
+        console.info(token,uid)
         if (localAudioTrack) {
           await client.publish(localAudioTrack);
         }
@@ -339,7 +340,8 @@ const Broadcast = () => {
 
       const connectPromise = async () => {
         await client.setClientRole('host');
-        await client.join(APP_ID, CHANNEL_NAME, TOKEN);
+        const {token,uid}  = await generateToken("PUBLISHER");
+        await client.join(APP_ID, CHANNEL_NAME, token,uid);
         await client.publish(localAudioTrack);
       };
 

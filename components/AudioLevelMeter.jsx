@@ -7,6 +7,7 @@ const AudioLevelMeter = ({ level = 0, isActive = false, className = "",mediaStre
 
 
   useEffect(() => {
+    console.log(mediaStreamTrack,"mediaStreamTrack")
     let meter = undefined;
     if(mediaStreamTrack){
       var ctx = new AudioContext();
