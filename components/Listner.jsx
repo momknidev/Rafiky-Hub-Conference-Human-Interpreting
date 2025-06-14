@@ -259,7 +259,7 @@ const Listner = () => {
           setSdkError(error.message);
           setConnectionError(`Failed to load streaming system: ${error.message}`);
           setIsSDKLoading(false);
-          toast.error('Failed to load streaming system. Please try Chrome browser.');
+          // toast.error('Failed to load streaming system. Please try Chrome browser.');
         }
       }
     };
@@ -458,7 +458,7 @@ const Listner = () => {
         } catch (error) {
           console.error('Error subscribing to audio:', error);
           setConnectionError(`Failed to connect to audio: ${error.message}`);
-          toast.error("Failed to connect to broadcaster audio", { id: 'connection-error' });
+          // toast.error("Failed to connect to broadcaster audio", { id: 'connection-error' });
         }
       }
     });
@@ -536,7 +536,7 @@ const Listner = () => {
         console.error("Error joining channel:", error);
         if (isComponentMountedRef.current) {
           setConnectionError(`Failed to join: ${error.message}`);
-          toast.error("Failed to connect to interpretation service", { id: 'channel-error' });
+          // toast.error("Failed to connect to interpretation service", { id: 'channel-error' });
           
           setTimeout(() => {
             if (isComponentMountedRef.current && !isConnected) {
@@ -617,7 +617,7 @@ const Listner = () => {
   const handlePlayPauseStream = useCallback(async () => {
     if (!remoteAudioTrack) {
       setConnectionError('No audio stream available');
-      toast.error('No audio stream available. Please check connection.');
+      // toast.error('No audio stream available. Please check connection.');
       return;
     }
     
@@ -1158,14 +1158,14 @@ const Listner = () => {
                 </Card>
 
                 {/* Contact Support */}
-                <div className="text-center">
+               {/* <div className="text-center">
                   <Button 
                     className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
                     onClick={() => setShowContactModal(true)}
                   >
                     Contact Support
                   </Button>
-                </div>
+                </div>*/}
               </div>
             </div>
           </div>
@@ -1187,7 +1187,7 @@ const Listner = () => {
       </div>
 
       {/* Contact Modal */}
-      {showContactModal && (
+      {/* {showContactModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm sm:max-w-md w-full mx-2 sm:mx-4 transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-8">
@@ -1248,7 +1248,7 @@ Thank you!`;
             </div>
           </div>
         </div>
-      )}
+      )}*/}
 
       {/* Optimized CSS */}
       <style jsx>{`
