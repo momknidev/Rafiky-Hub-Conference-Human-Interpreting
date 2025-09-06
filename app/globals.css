@@ -80,7 +80,8 @@
     --color-sidebar-ring: hsl(var(--sidebar-ring));
 
     /* Custom ZERO brand colors */
-    --color-zero-beige: #F8F0E0;
+    /* --color-zero-beige: #F8F0E0; */
+    --color-zero-beige: whitesmoke;
     --color-zero-green: #C2D538;
     --color-zero-status-good: #6FBF4C;
     --color-zero-warning: #D94A39;

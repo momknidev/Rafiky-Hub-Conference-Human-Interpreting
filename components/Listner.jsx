@@ -844,12 +844,12 @@ const Listner = () => {
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <img 
-              src="/images/festival-poster.jpg" 
-              alt="Green & Blue Festival"
-              className="w-full h-auto object-cover"
+              src="/images/logo.png" 
+              alt="Novamarine"
+              className="object-contain mx-auto mt-10"
               loading="eager"
-              width="800"
-              height="400"
+              width="200"
+              height="200"
             />
           </div>
         </div>
@@ -1172,7 +1172,7 @@ const Listner = () => {
         </main>
 
         {/* Footer */}
-        <div className="w-full overflow-hidden">
+        {/* <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <img 
               src="/images/layout.png" 
@@ -1183,7 +1183,7 @@ const Listner = () => {
               height="400"
             />
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Contact Modal */}

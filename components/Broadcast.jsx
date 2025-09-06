@@ -845,7 +845,7 @@ const Broadcast = () => {
                   {!isLive ? (
                     <Button 
                       onClick={handleStartStream}
-                      disabled={!isMicConnected || isReconnecting || true}
+                      disabled={!isMicConnected || isReconnecting}
                       className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                       size="lg"
                     >
