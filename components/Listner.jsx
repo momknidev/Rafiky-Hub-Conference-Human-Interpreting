@@ -218,6 +218,8 @@ const Listner = () => {
   const hasShownConnectedToastRef = useRef(false);
   const reconnectTimeoutRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  const startedAlreadyRef = useRef(false);
+  
 
   // 🚨 CRITICAL: Browser compatibility check on mount
   useEffect(() => {
@@ -288,6 +290,7 @@ const Listner = () => {
         if (hostOnline && isLive && remoteAudioTrack && wasPlayingBeforeDisconnect && !isPlaying) {
           try {
             await remoteAudioTrack.play();
+            console.log("auto-resume 4");
             setIsPlaying(true);
             setWasPlayingBeforeDisconnect(false);
             toast.success('🎵 Audio resumed automatically!', { id: 'heartbeat-resume' });
@@ -410,6 +413,7 @@ const Listner = () => {
 
     // Enhanced event handlers
     agoraClient.on('user-published', async (user, mediaType) => {
+      console.log("user-published", wasPlayingBeforeDisconnect,isPlaying);
       if (mediaType === 'audio' && isComponentMountedRef.current) {
         try {
           await agoraClient.subscribe(user, mediaType);
@@ -424,16 +428,21 @@ const Listner = () => {
           setConnectionError(null);
           
           // Enhanced auto-resume
-          if (wasPlayingBeforeDisconnect || isPlaying) {
+          // if (wasPlayingBeforeDisconnect || isPlaying) {
+          if (startedAlreadyRef.current) {
+            console.log("wasPlayingBeforeDisconnect", wasPlayingBeforeDisconnect);
             setTimeout(async () => {
               try {
+                console.log("auto-resume 1");
                 await audioTrack.play();
                 setIsPlaying(true);
                 setWasPlayingBeforeDisconnect(false);
                 toast.success('🎵 Audio resumed automatically!', { id: 'auto-resume' });
               } catch (playError) {
+                console.log("playError", playError);
                 setTimeout(async () => {
                   try {
+                    console.log("auto-resume 2");
                     await audioTrack.play();
                     setIsPlaying(true);
                     setWasPlayingBeforeDisconnect(false);
@@ -615,6 +624,7 @@ const Listner = () => {
   }, [remoteAudioTrack, isMuted, debouncedVolumeChange]);
 
   const handlePlayPauseStream = useCallback(async () => {
+
     if (!remoteAudioTrack) {
       setConnectionError('No audio stream available');
       // toast.error('No audio stream available. Please check connection.');
@@ -623,12 +633,15 @@ const Listner = () => {
     
     try {
       if (isPlaying) {
+        startedAlreadyRef.current = false;
         await remoteAudioTrack.stop();
         setIsPlaying(false);
         setWasPlayingBeforeDisconnect(false);
         toast.info("Stream paused", { id: 'stream-pause' });
       } else {
+        startedAlreadyRef.current = true;
         await remoteAudioTrack.play();
+        console.log("auto-resume 3");
         setIsPlaying(true);
         setWasPlayingBeforeDisconnect(true);
         setConnectionError(null);
@@ -639,7 +652,7 @@ const Listner = () => {
       setConnectionError(`Playback error: ${error.message}`);
       toast.error("Failed to toggle playback", { id: 'playback-error' });
     }
-  }, [remoteAudioTrack, isPlaying]);
+  }, [remoteAudioTrack, isPlaying, startedAlreadyRef]);
 
   const toggleMute = useCallback(() => {
     if (!remoteAudioTrack) return;
