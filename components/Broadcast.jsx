@@ -35,6 +35,7 @@ const Broadcast = () => {
   const [openRequestToHandoverPopup, setOpenRequestToHandoverPopup] = useState(false);
   const [waitingForResponseToHandoverRquestPopup, setWaitingForResponseToHandoverRquestPopup] = useState(false);
   const [handoverRequestResponse, setHandoverRequestResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Basic state
   const [isLive, setIsLive] = useState(false);
@@ -328,6 +329,7 @@ const Broadcast = () => {
 
   // Enhanced start broadcast with session tracking and timeout
   const handleStartStream = async () => {
+    setLoading(true);
     try {
       if (!isMicConnected) {
         toast.info("Initializing microphone...");
@@ -410,11 +412,14 @@ const Broadcast = () => {
       // Reset state on failure
       setIsLive(false);
       setConnectionStatus('error');
+    }finally{
+      setLoading(false);
     }
   };
 
   // Enhanced stop broadcast with session cleanup
   const handleStopStream = async () => {
+    setLoading(true);
     try {
       if (localAudioTrack) {
         await client.unpublish(localAudioTrack);
@@ -455,6 +460,10 @@ const Broadcast = () => {
       console.error("Error stopping stream:", error);
       setConnectionError(`Stop error: ${error.message}`);
       toast.error("Failed to stop stream properly");
+    }finally{
+      setTimeout(() => {
+        setLoading(false);
+      }, 4000);
     }
   };
 
@@ -736,7 +745,7 @@ const Broadcast = () => {
         openRequestToHandoverPopup && (
           <Dialog>
             <h1 className='text-2xl font-bold text-center'>Request to Handover</h1>
-            <p className='text-sm text-gray-500 text-center'>Are you sure you want to request to handover the broadcast to me?</p>
+            <p className='text-sm text-gray-500 text-center'>Handover request received from the other broadcaster. Please accept or reject the request.</p>
             <div className='flex items-center gap-5 w-full justify-center mt-5'>
               <Button onClick={sendAcceptToHandover} className='bg-zero-green text-white hover:bg-zero-green/90'>Accept</Button>
               <Button onClick={sendRejectToHandover} className='bg-red-500 text-white hover:bg-red-500/90'>Reject</Button>
@@ -950,6 +959,14 @@ const Broadcast = () => {
                   {/* Main Action Button */}
                   <div className="text-center">
                     {
+                      loading ? (
+                        <Button
+                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
+                          size="lg"
+                        >
+                          Loading...
+                        </Button>
+                      ) : (
                       (broadcasterCount > 1 && !isLive) ? (
                         <Button
                           onClick={sendRequestToHandover}
@@ -978,7 +995,7 @@ const Broadcast = () => {
                           <MicOff className="mr-4 h-10 w-10" />
                           Stop Broadcasting
                         </Button>
-                      )}
+                      ))}
                   </div>
 
                   {/* Connection Controls */}
