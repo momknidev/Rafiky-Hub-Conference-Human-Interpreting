@@ -1087,7 +1087,7 @@ const Broadcast = () => {
                       </div>
                       <div className="p-4 bg-gray-50 rounded-2xl">
                         <span className="text-zero-text/70 font-medium block mb-1">Language</span>
-                        <div className="font-bold text-lg text-zero-text">English</div>
+                        <div className="font-bold text-lg text-zero-text">Italian-{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}</div>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-2xl">
                         <span className="text-zero-text/70 font-medium block mb-1">Mic Status</span>
