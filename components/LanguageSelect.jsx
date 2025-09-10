@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { useChannel } from '@/context/ChannelContext'
-
-const LanguageSelect = ({setOpen}) => {
-  const {setLanguage} = useChannel();
+import {useRouter} from 'next/navigation'
+const LanguageSelect = () => {
+  const [language, setLanguage] = useState('english');
+  const router = useRouter();
   return (
     <div className='h-screen w-screen flex items-center justify-center'>
         <Card className='w-full max-w-xl bg-white border-0 rounded-2xl'>
@@ -24,7 +24,7 @@ const LanguageSelect = ({setOpen}) => {
                         <SelectItem value='french' className='cursor-pointer'>Italian-French</SelectItem>
                     </SelectContent>
                 </Select>
-                <Button onClick={() => setOpen(false)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
+                <Button onClick={() => router.push(`/${language}`)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
             </CardContent>
         </Card>
     </div>

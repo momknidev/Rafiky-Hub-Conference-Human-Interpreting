@@ -8,6 +8,7 @@ import debounce from 'lodash/debounce';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 import { generateToken } from '@/utils/generateToken';
 import { useChannel } from '@/context/ChannelContext';
+import { useParams } from 'next/navigation';
 
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
@@ -173,6 +174,8 @@ const ListenerCountBadge = lazy(() => import('@/components/ListenerCountBadge').
 
 const Listner = () => {
   // 🚨 BROWSER COMPATIBILITY STATE
+  const params = useParams();
+  const { language } = params;
   const [browserInfo, setBrowserInfo] = useState(null);
   const [showBrowserWarning, setShowBrowserWarning] = useState(false);
 
@@ -202,7 +205,12 @@ const Listner = () => {
   const [sessionId, setSessionId] = useState(null);
   const [lastKnownBroadcasterState, setLastKnownBroadcasterState] = useState(null);
   const [broadcasterOnline, setBroadcasterOnline] = useState(false);
-  const { channelName, language } = useChannel();
+  const { channelName, setLanguage } = useChannel();
+
+
+  useEffect(() => {
+    setLanguage(language);
+  }, [language]);
 
   // 🚨 DEVICE DETECTION
   const [isIOS] = useState(() => {
