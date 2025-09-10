@@ -24,7 +24,7 @@ const LanguageSelect = () => {
                         <SelectItem value='french' className='cursor-pointer'>Italian-French</SelectItem>
                     </SelectContent>
                 </Select>
-                <Button onClick={() => router.push(`/${language}`)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
+                <Button onClick={() => router.push(`/listen/${language}`)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
             </CardContent>
         </Card>
     </div>
