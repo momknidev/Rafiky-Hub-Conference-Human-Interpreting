@@ -859,7 +859,7 @@ const Listner = () => {
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <img 
-              src="/images/logo.png" 
+              src="/images/atk-logo.jpg" 
               alt="Novamarine"
               className="object-contain mx-auto mt-10"
               loading="eager"
