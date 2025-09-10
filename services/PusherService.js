@@ -9,9 +9,7 @@ const pusher = new Pusher({
   useTLS: true,
 });
 
-const channel_name = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-
-export async function pushMessage(event, data) {
+export async function pushMessage(event, data, channel_name) {
   await pusher.trigger(channel_name, event, {
     data: data,
   });

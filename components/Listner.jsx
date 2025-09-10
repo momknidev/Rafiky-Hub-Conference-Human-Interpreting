@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import debounce from 'lodash/debounce';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 import { generateToken } from '@/utils/generateToken';
+import { useChannel } from '@/context/ChannelContext';
 
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
@@ -201,6 +202,7 @@ const Listner = () => {
   const [sessionId, setSessionId] = useState(null);
   const [lastKnownBroadcasterState, setLastKnownBroadcasterState] = useState(null);
   const [broadcasterOnline, setBroadcasterOnline] = useState(false);
+  const { channelName, language } = useChannel();
 
   // 🚨 DEVICE DETECTION
   const [isIOS] = useState(() => {
@@ -276,7 +278,7 @@ const Listner = () => {
   // 🚨 ENHANCED BROADCASTER DETECTION
   const checkBroadcasterStatus = useCallback(async () => {
     try {
-      const res = await getBroadcastInfoRequest();
+      const res = await getBroadcastInfoRequest(channelName);
       const data = res.data?.data;
       
       if (data) {
@@ -317,7 +319,7 @@ const Listner = () => {
         setConnectionError('Unable to check broadcaster status');
       }
     }
-  }, [isConnected, isLive, remoteAudioTrack, isReconnecting, reconnectCount, connectionError, wasPlayingBeforeDisconnect, isPlaying]);
+  }, [isConnected, isLive, remoteAudioTrack, isReconnecting, reconnectCount, connectionError, wasPlayingBeforeDisconnect, isPlaying, channelName]);
 
   // 🚨 AGGRESSIVE RECONNECTION
   const attemptReconnection = useCallback(async () => {
@@ -334,7 +336,7 @@ const Listner = () => {
 
       try {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+        const CHANNEL_NAME = channelName;
         const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
 
         if (!APP_ID || !CHANNEL_NAME) {
@@ -437,7 +439,7 @@ const Listner = () => {
                 await audioTrack.play();
                 setIsPlaying(true);
                 setWasPlayingBeforeDisconnect(false);
-                toast.success('🎵 Audio resumed automatically!', { id: 'auto-resume' });
+                // toast.success('🎵 Audio resumed automatically!', { id: 'auto-resume' });
               } catch (playError) {
                 console.log("playError", playError);
                 setTimeout(async () => {
@@ -446,7 +448,7 @@ const Listner = () => {
                     await audioTrack.play();
                     setIsPlaying(true);
                     setWasPlayingBeforeDisconnect(false);
-                    toast.success('🎵 Audio resumed!', { id: 'delayed-resume' });
+                    // toast.success('🎵 Audio resumed!', { id: 'delayed-resume' });
                   } catch {
                     toast.info('Click play to resume audio', { 
                       id: 'manual-resume',
@@ -462,7 +464,7 @@ const Listner = () => {
           }
           
           if (!isReconnecting) {
-            toast.success("🎙️ Broadcaster is live!", { id: 'broadcaster-live' });
+            // toast.success("🎙️ Broadcaster is live!", { id: 'broadcaster-live' });
           }
         } catch (error) {
           console.error('Error subscribing to audio:', error);
@@ -480,7 +482,7 @@ const Listner = () => {
         setIsLive(false);
         setIsPlaying(false);
         if (!isReconnecting) {
-          toast.info("🎙️ Broadcaster stopped", { id: 'broadcaster-stopped' });
+          // toast.info("🎙️ Broadcaster stopped", { id: 'broadcaster-stopped' });
         }
       }
     });
@@ -515,8 +517,8 @@ const Listner = () => {
      
       try {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-        const {token,uid} =await generateToken("SUBSCRIBER");
+        const CHANNEL_NAME = channelName;
+        const {token,uid} =await generateToken("SUBSCRIBER", channelName);
         
         if (!APP_ID || !CHANNEL_NAME) {
           throw new Error(`Missing required Agora configuration`);
@@ -570,7 +572,7 @@ const Listner = () => {
       }
       agoraClient.leave().catch(console.error);
     };
-  }, [AgoraRTC, isSDKLoading, isMuted, volume]);
+  }, [AgoraRTC, isSDKLoading, isMuted, volume, channelName]);
 
   // 🚨 HEARTBEAT MANAGEMENT
   const startHeartbeat = useCallback(() => {
@@ -871,7 +873,7 @@ const Listner = () => {
           {/* Service Title */}
           <div className="text-center mb-10 sm:mb-12">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6">
-              Live English Interpretation Service
+              Live Italian-{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} Interpretation Service
             </h1>
             
   

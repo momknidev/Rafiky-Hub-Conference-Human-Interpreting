@@ -12,6 +12,8 @@ import { generateToken } from '@/utils/generateToken';
 import Pusher from 'pusher-js';
 import { pushMessage } from '@/services/PusherService';
 import Dialog from './Dialog';
+import { useChannel } from '@/context/ChannelContext';
+import { useParams } from 'next/navigation';
 
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
@@ -27,6 +29,8 @@ const loadAgoraSDK = async () => {
 };
 
 const Broadcast = () => {
+  const params = useParams();
+  const { language } = params;
   // Loading state for async components
   const [isSDKLoading, setIsSDKLoading] = useState(true);
   const [sdkError, setSDKError] = useState(null);
@@ -60,7 +64,12 @@ const Broadcast = () => {
   const streamStartTimeRef = useRef(null);
   const isLiveRef = useRef(false);
   const maxReconnectAttempts = 8;
+  const { channelName, setLanguage } = useChannel();
 
+
+  useEffect(() => {
+    setLanguage(language);
+  }, [language]);
 
   useEffect(() => {
     isLiveRef.current = isLive;
@@ -118,8 +127,8 @@ const Broadcast = () => {
 
       try {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
-        const { token, uid } = await generateToken("PUBLISHER");
+        const CHANNEL_NAME = channelName;
+        const { token, uid } = await generateToken("PUBLISHER", channelName);
 
         if (!APP_ID || !CHANNEL_NAME) {
           throw new Error(`Missing broadcast configuration`);
@@ -343,7 +352,7 @@ const Broadcast = () => {
 
       // Validate environment variables
       const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-      const CHANNEL_NAME = process.env.NEXT_PUBLIC_CHANNEL_NAME;
+      const CHANNEL_NAME = channelName;
       const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN || null;
 
       if (!APP_ID || !CHANNEL_NAME) {
@@ -358,7 +367,7 @@ const Broadcast = () => {
 
       const connectPromise = async () => {
         await client.setClientRole('host');
-        const { token, uid } = await generateToken("PUBLISHER");
+        const { token, uid } = await generateToken("PUBLISHER", channelName);
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
       };
@@ -412,7 +421,7 @@ const Broadcast = () => {
       // Reset state on failure
       setIsLive(false);
       setConnectionStatus('error');
-    }finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -460,7 +469,7 @@ const Broadcast = () => {
       console.error("Error stopping stream:", error);
       setConnectionError(`Stop error: ${error.message}`);
       toast.error("Failed to stop stream properly");
-    }finally{
+    } finally {
       setTimeout(() => {
         setLoading(false);
       }, 4000);
@@ -491,7 +500,7 @@ const Broadcast = () => {
   useEffect(() => {
     const fetchListenerCount = async () => {
       try {
-        const res = await getBroadcastInfoRequest();
+        const res = await getBroadcastInfoRequest(channelName);
         const count = res.data?.data?.audience_total || 0;
         const hostcount = res.data?.data?.broadcasters || 0;
         setListenerCount(count);
@@ -509,7 +518,7 @@ const Broadcast = () => {
     fetchListenerCount();
     const interval = setInterval(fetchListenerCount, 3000); // More frequent updates
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, channelName]);
 
   // Initialize microphone on component mount (only after SDK loads)
   useEffect(() => {
@@ -521,10 +530,11 @@ const Broadcast = () => {
 
   // Initialize Pusher
   useEffect(() => {
+    
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
     });
-    const channel = pusher.subscribe(process.env.NEXT_PUBLIC_CHANNEL_NAME);
+    const channel = pusher.subscribe(channelName);
     channel.bind('on-request-to-handover', (data) => {
       console.log(isLiveRef.current, "hello");
       if (isLiveRef.current) {
@@ -542,10 +552,10 @@ const Broadcast = () => {
 
     return () => {
       channel.unbind_all();
-      pusher.unsubscribe(process.env.NEXT_PUBLIC_CHANNEL_NAME);
+      pusher.unsubscribe(channelName);
       pusher.disconnect();
     };
-  }, []);
+  }, [channelName]);
 
 
   const sendRequestToHandover = async () => {
@@ -553,7 +563,7 @@ const Broadcast = () => {
     setWaitingForResponseToHandoverRquestPopup(true);
     await pushMessage("on-request-to-handover", {
       message: "Can you handover the broadcast to me?",
-    });
+    }, channelName);
   };
 
   const sendAcceptToHandover = async () => {
@@ -561,14 +571,14 @@ const Broadcast = () => {
     setOpenRequestToHandoverPopup(false);
     await pushMessage("on-accept-to-handover", {
       message: "Yes, I will handover the broadcast to you.",
-    });
+    }, channelName);
   };
 
   const sendRejectToHandover = async () => {
     setOpenRequestToHandoverPopup(false);
     await pushMessage("on-reject-to-handover", {
       message: "No, I will not handover the broadcast to you.",
-    });
+    }, channelName);
   };
 
 
@@ -725,19 +735,19 @@ const Broadcast = () => {
               handoverRequestResponse === "accepted" ? (
                 <>
                   <p className='text-sm text-green-500 text-center mb-5'>Handover request accepted</p>
-                  <Button onClick={() => {setWaitingForResponseToHandoverRquestPopup(false); handleStartStream()}} className='bg-zero-green text-white hover:bg-zero-green/90'>Start Broadcasting</Button>
+                  <Button onClick={() => { setWaitingForResponseToHandoverRquestPopup(false); handleStartStream() }} className='bg-zero-green text-white hover:bg-zero-green/90'>Start Broadcasting</Button>
                 </>
               )
-             : (handoverRequestResponse === "rejected") ? (
-              <>
-                <p className='text-sm text-red-500 text-center mb-5'>Handover request rejected</p>
-                <Button onClick={() => setWaitingForResponseToHandoverRquestPopup(false)} className='bg-gray-600 text-white hover:bg-gray-600/90'>Close</Button>
-              </>
-            ) : (
-              <>
-                <p className='text-sm text-gray-500 text-center mb-5'>Waiting for response from the other broadcaster</p>
-              </>
-            )}
+                : (handoverRequestResponse === "rejected") ? (
+                  <>
+                    <p className='text-sm text-red-500 text-center mb-5'>Handover request rejected</p>
+                    <Button onClick={() => setWaitingForResponseToHandoverRquestPopup(false)} className='bg-gray-600 text-white hover:bg-gray-600/90'>Close</Button>
+                  </>
+                ) : (
+                  <>
+                    <p className='text-sm text-gray-500 text-center mb-5'>Waiting for response from the other broadcaster</p>
+                  </>
+                )}
           </Dialog>
         )
       }
@@ -959,15 +969,7 @@ const Broadcast = () => {
                   {/* Main Action Button */}
                   <div className="text-center">
                     {
-                      loading ? (
-                        <Button
-                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
-                          size="lg"
-                        >
-                          Loading...
-                        </Button>
-                      ) : (
-                      (broadcasterCount > 1 && !isLive) ? (
+                      (broadcasterCount > 1 && !isLive && !loading) ? (
                         <Button
                           onClick={sendRequestToHandover}
                           className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
@@ -995,7 +997,7 @@ const Broadcast = () => {
                           <MicOff className="mr-4 h-10 w-10" />
                           Stop Broadcasting
                         </Button>
-                      ))}
+                      )}
                   </div>
 
                   {/* Connection Controls */}
