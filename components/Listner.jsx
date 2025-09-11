@@ -9,6 +9,7 @@ import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 import { generateToken } from '@/utils/generateToken';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
+import { flagsMapping } from '@/constants/flagsMapping';
 
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
@@ -880,8 +881,8 @@ const Listner = () => {
         <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
           {/* Service Title */}
           <div className="text-center mb-10 sm:mb-12">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6">
-              Live Italian-{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} Interpretation Service
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6 flex items-center justify-center">
+              Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} Interpretation Service
             </h1>
             
   

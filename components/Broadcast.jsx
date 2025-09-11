@@ -14,6 +14,7 @@ import { pushMessage } from '@/services/PusherService';
 import Dialog from './Dialog';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
+import { flagsMapping } from '@/constants/flagsMapping';
 
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
@@ -1087,7 +1088,7 @@ const Broadcast = () => {
                       </div>
                       <div className="p-4 bg-gray-50 rounded-2xl">
                         <span className="text-zero-text/70 font-medium block mb-1">Language</span>
-                        <div className="font-bold text-lg text-zero-text">Italian-{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}</div>
+                        <div className="font-bold text-lg text-zero-text flex items-center gap-2"><img src={flagsMapping[language]} alt={language} className='w-6 h-6'/>{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}</div>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-2xl">
                         <span className="text-zero-text/70 font-medium block mb-1">Mic Status</span>

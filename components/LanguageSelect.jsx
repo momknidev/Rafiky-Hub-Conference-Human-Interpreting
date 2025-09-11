@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import {useRouter} from 'next/navigation'
+import { languages, flagsMapping } from '@/constants/flagsMapping'
 const LanguageSelect = () => {
   const [language, setLanguage] = useState('english');
   const router = useRouter();
@@ -19,9 +20,14 @@ const LanguageSelect = () => {
                         <SelectValue placeholder='Select Language' className='text-black w-[600px] bg-white border-gray-400'/>
                     </SelectTrigger>
                     <SelectContent className='bg-white border-none shadow-md'>
-                        <SelectItem value='english' className='cursor-pointer'>Italian-English</SelectItem>
-                        <SelectItem value='german' className='cursor-pointer'>Italian-German</SelectItem>
-                        <SelectItem value='french' className='cursor-pointer'>Italian-French</SelectItem>
+                        {
+                            languages.map((language) => (
+                                <SelectItem value={language.value} className='cursor-pointer flex items-center gap-2'>
+                                    <img src={flagsMapping[language.value]} alt={language.name} className='w-4 h-4 mr-2'/>
+                                    <span>{language.name}</span>
+                                </SelectItem>
+                            ))
+                        }
                     </SelectContent>
                 </Select>
                 <Button onClick={() => router.push(`/listen/${language}`)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
