@@ -9,12 +9,12 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('atk-english');
+  const [channelName, setChannelName] = useState('haribo-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`atk-${language}`);
+    setChannelName(`haribo-${language}`);
   },[language])
 
 
