@@ -1027,7 +1027,7 @@ const Listner = () => {
                     
                     <div className="flex items-center gap-6">
                       <button
-                        onClick={toggleMute}
+                        // onClick={toggleMute}
                         className="p-4 lg:p-5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-300 group"
                         disabled={!isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
                       >
@@ -1039,7 +1039,8 @@ const Listner = () => {
                       </button>
                       
                       <div className="flex-1 space-y-3">
-                        {!isIOS ? (
+                        {/* {!isIOS ? (  */}
+                        {false ? ( 
                           <>
                             <input
                               type="range"
