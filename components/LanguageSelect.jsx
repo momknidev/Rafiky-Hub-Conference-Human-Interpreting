@@ -1,38 +1,31 @@
 import React, { useState } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import {useRouter} from 'next/navigation'
-import { languages, flagsMapping } from '@/constants/flagsMapping'
+import { useRouter } from 'next/navigation'
+import { flagsMapping, languages } from '@/constants/flagsMapping';
+import Link from 'next/link';
 const LanguageSelect = () => {
-  const [language, setLanguage] = useState('english');
-  const router = useRouter();
   return (
-    <div className='h-screen w-screen flex items-center justify-center'>
-        <Card className='w-full max-w-xl bg-white border-0 rounded-2xl'>
-            <CardHeader>
-                <img src="/images/atk-logo.jpg" alt="ATK Logo" width={100} height={100} className='!w-[50%] h-auto mx-auto mb-5'/>
-            </CardHeader>
-            <CardContent>
-                <label className='text-zero-text/70 font-medium block mb-1'>Select Language</label>
-                <Select defaultValue='english' onValueChange={(value) => setLanguage(value)} className='w-full'>
-                    <SelectTrigger className='cursor-pointer w-full border-gray-400'>
-                        <SelectValue placeholder='Select Language' className='text-black w-[600px] bg-white border-gray-400'/>
-                    </SelectTrigger>
-                    <SelectContent className='bg-white border-none shadow-md'>
-                        {
-                            languages.map((language) => (
-                                <SelectItem value={language.value} className='cursor-pointer flex items-center gap-2'>
-                                    <img src={flagsMapping[language.value]} alt={language.name} className='w-4 h-4 mr-2'/>
-                                    <span>{language.name}</span>
-                                </SelectItem>
-                            ))
-                        }
-                    </SelectContent>
-                </Select>
-                <Button onClick={() => router.push(`/listen/${language}`)} className='w-full mt-4 bg-zero-green text-white cursor-pointer hover:bg-zero-green/90'>Join</Button>
-            </CardContent>
-        </Card>
+    <div className='h-screen w-screen gradient-2 flex flex-col items-center justify-start py-10 px-8 pt-20'>
+      <img src="/logo/livello.svg" alt="Livello Logo" className='w-[14rem] md:w-[17rem] object-cover' />
+
+      <div className='w-full flex flex-col items-center justify-start mt-10'>
+        <h1 className='text-white text-2xl md:text-4xl font-bold uppercase'>Choose your language</h1>
+        <p className='text-white/80 mt-2 text-lg font-light'>Translate the event in your language</p>
+      </div>
+
+      <div className='w-full flex flex-col items-center justify-start mt-10 flex-1 overflow-y-auto'>
+        <div className='w-full grid grid-cols-2 md:grid-cols-3 gap-5'>
+          {
+            languages.map((language) => (
+              <Link href={`/lang/${language.value}`} key={language.value}>
+                <div className='flex items-center justify-start gap-2 flex-col'>
+                  <img src={language.flag} alt={language.name} className='w-[10rem] h-[10rem] rounded-full object-cover' />
+                  <p className='text-white text-lg font-normal'>{language.name}</p>
+                </div>
+              </Link>
+            ))
+          }
+        </div>
+      </div>
     </div>
   )
 }

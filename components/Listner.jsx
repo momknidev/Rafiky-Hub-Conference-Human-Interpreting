@@ -863,14 +863,14 @@ const Listner = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-zero-beige">
+      <div className="min-h-screen bg-zero-beige gradient-2">
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <img 
-              src="/images/atk-logo.jpg" 
-              alt="Novamarine"
-              className="object-contain mx-auto mt-10"
+              src="/logo/Chogan.svg" 
+              alt="Chogan"
+              className="object-contain mx-auto mt-16"
               loading="eager"
               width="200"
               height="200"
@@ -881,8 +881,8 @@ const Listner = () => {
         <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
           {/* Service Title */}
           <div className="text-center mb-10 sm:mb-12">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6 flex items-center justify-center">
-              Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} Interpretation Service
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-medium text-white mb-6 mt-5">
+              Live <span className="text-gradient inline-block font-bold">{language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}</span> Interpretation Service
             </h1>
             
   
@@ -899,19 +899,19 @@ const Listner = () => {
                 </>
               ) : (
                 <>
-                  <Suspense fallback={<div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                  <Suspense fallback={<div className="w-16 h-8 bg-chogan-black rounded-full animate-pulse"></div>}>
                     <OnAirIndicator isLive={isLive} />
                   </Suspense>
-                  <Suspense fallback={<div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                  <Suspense fallback={<div className="w-20 h-8 bg-chogan-black rounded-full animate-pulse"></div>}>
                     <ListenerCountBadge count={listenerCount} />
                   </Suspense>
                   
                   {/* Connection Status */}
                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-                    streamStatus.status === 'live' ? 'text-green-600 bg-green-50' :
-                    streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-blue-50' :
-                    streamStatus.status === 'loading' ? 'text-blue-600 bg-blue-50' :
-                    'text-orange-600 bg-orange-50'
+                    streamStatus.status === 'live' ? 'text-green-600 bg-gray-200 ' :
+                    streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-gray-200' :
+                    streamStatus.status === 'loading' ? 'text-blue-600 bg-gray-200' :
+                    'text-orange-600 bg-gray-200'
                   }`}>
                     {streamStatus.status === 'reconnecting' || streamStatus.status === 'loading' ? (
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -954,7 +954,7 @@ const Listner = () => {
               <div className="space-y-8">
                 
                 {/* Primary Control Card */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
+                <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8 text-center">
                     <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
                       {isPlaying ? (
@@ -964,7 +964,7 @@ const Listner = () => {
                       )}
                     </div>
                     
-                    <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
+                    <h3 className="text-2xl lg:text-3xl font-inter font-bold text-white mb-4">
                       {streamStatus.status === 'live' ? 'Live Stream Active' : 
                        streamStatus.status === 'loading' ? 'Loading Service' :
                        streamStatus.status === 'reconnecting' ? 'Reconnecting' :
@@ -972,7 +972,7 @@ const Listner = () => {
                        'Stream Offline'}
                     </h3>
                     
-                    <p className="text-base lg:text-lg font-inter text-zero-text/70 mb-8">
+                    <p className="text-base lg:text-lg font-inter text-white/70 mb-8">
                       {streamStatus.message}
                     </p>
 
@@ -982,8 +982,8 @@ const Listner = () => {
                         onClick={handlePlayPauseStream}
                         className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${
                           isPlaying 
-                            ? 'bg-zero-warning text-white hover:bg-zero-warning/90' 
-                            : 'bg-zero-green text-zero-text hover:bg-zero-green/90'
+                            ? 'bg-blue-600 text-white hover:bg-blue-600/90' 
+                            : 'bg-pink-600 text-white hover:bg-pink-600/90'
                         }`}
                         size="lg"
                         disabled={streamStatus.status === 'reconnecting'}
@@ -1004,7 +1004,7 @@ const Listner = () => {
 
                     {streamStatus.status !== 'live' && (
                       <Button
-                        className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-zero-navy/80 text-white font-bold font-inter rounded-xl"
+                        className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-chogan-blue text-white font-bold font-inter rounded-xl disabled:opacity-90 cursor-not-allowed"
                         size="lg"
                         disabled
                       >
@@ -1018,9 +1018,9 @@ const Listner = () => {
                 </Card>
 
                 {/* Audio Controls */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
+                <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-3">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-8 flex items-center gap-3">
                       <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-blue" />
                       Audio Controls
                     </h4>
@@ -1032,9 +1032,9 @@ const Listner = () => {
                         disabled={!isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
                       >
                         {isMuted ? (
-                          <VolumeX className="h-6 w-6 lg:h-7 lg:w-7 text-zero-warning" />
+                          <VolumeX className="h-6 w-6 lg:h-7 lg:w-7 text-chogan-blue" />
                         ) : (
-                          <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-text group-hover:text-zero-blue transition-colors" />
+                          <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-chogan-blue group-hover:text-chogan-blue transition-colors" />
                         )}
                       </button>
                       
@@ -1050,9 +1050,9 @@ const Listner = () => {
                               value={isMuted ? 0 : volume}
                               onChange={(e) => handleVolumeChange(Number(e.target.value))}
                               disabled={isMuted || !isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
-                              className="w-full h-3 lg:h-4 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                              className="w-full h-3 lg:h-4 bg-chogan-black rounded-full appearance-none cursor-pointer slider"
                             />
-                            <div className="flex justify-between text-sm lg:text-base text-zero-text/70 font-inter font-medium">
+                            <div className="flex justify-between text-sm lg:text-base text-white/70 font-inter font-medium">
                               <span>0%</span>
                               <span className="font-bold text-zero-text">{isMuted ? 'Muted' : `${volume}%`}</span>
                               <span>100%</span>
@@ -1060,12 +1060,12 @@ const Listner = () => {
                           </>
                         ) : (
                           <div className="text-center py-4">
-                            <p className="text-sm text-zero-text/70 font-inter">
+                            <p className="text-sm text-white/70 font-inter">
                               Please use your device's volume buttons to adjust audio level
                             </p>
-                            <div className="mt-2 text-lg font-bold text-zero-text">
+                            {/* <div className="mt-2 text-lg font-bold text-white">
                               {isMuted ? 'Muted' : 'Volume: Use Device Controls'}
-                            </div>
+                            </div> */}
                           </div>
                         )}
                       </div>
@@ -1078,16 +1078,16 @@ const Listner = () => {
               <div className="space-y-8">
                 
                 {/* Audio Level Display */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
+                <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-2">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-8 flex items-center gap-2">
                       <Signal className="h-5 w-5 lg:h-6 lg:w-6 text-zero-green" />
                       Audio Level
                     </h4>
                     
                     {isSDKLoading ? (
                       <div className="mb-4">
-                        <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+                        <div className="h-32 bg-chogan-black rounded-lg animate-pulse flex items-center justify-center">
                           <div className="text-center">
                             <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                             <p className="text-sm text-gray-500">Loading audio meter...</p>
@@ -1097,7 +1097,7 @@ const Listner = () => {
                     ) : (
                       <Suspense fallback={
                         <div className="mb-4">
-                          <div className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>
+                          <div className="h-32 bg-chogan-black rounded-lg animate-pulse"></div>
                         </div>
                       }>
                         <AudioLevelMeter
@@ -1112,12 +1112,12 @@ const Listner = () => {
                     <div className="text-center">
                       <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
                         streamStatus.status === 'live' && isPlaying
-                          ? 'bg-zero-status-good/10 text-zero-status-good' 
-                          : 'bg-gray-100 text-gray-600'
+                          ? 'bg-chogan-blue text-white' 
+                          : 'bg-chogan-pink text-white'
                       }`}>
                         <div className={`w-2 h-2 rounded-full ${
                           streamStatus.status === 'live' && isPlaying
-                            ? 'bg-zero-status-good animate-pulse' 
+                            ? 'bg-white animate-pulse' 
                             : 'bg-gray-400'
                         }`}></div>
                         {streamStatus.status === 'live' && isPlaying ? 'Audio Active' :
@@ -1130,9 +1130,9 @@ const Listner = () => {
                 </Card>
 
                 {/* Enhanced Connection Status */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
+                <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-6">
+                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-6">
                       System Status
                     </h4>
                     
@@ -1140,9 +1140,9 @@ const Listner = () => {
                       
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Service Status</span>
+                        <span className="font-medium text-black">Service Status</span>
                         <span className={`font-bold ${
-                          streamStatus.status === 'live' ? 'text-green-600' :
+                          streamStatus.status === 'live' ? 'text-chogan-blue' :
                           streamStatus.status === 'reconnecting' ? 'text-blue-600' :
                           'text-orange-600'
                         }`}>
@@ -1154,27 +1154,27 @@ const Listner = () => {
                       </div>
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Broadcaster</span>
-                        <span className={`font-bold ${broadcasterOnline ? 'text-green-600' : 'text-gray-600'}`}>
+                        <span className="font-medium text-black">Broadcaster</span>
+                        <span className={`font-bold ${broadcasterOnline ? 'text-chogan-blue' : 'text-gray-600'}`}>
                           {broadcasterOnline ? 'Online' : 'Offline'}
                         </span>
                       </div>
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Audio Stream</span>
-                        <span className={`font-bold ${isLive ? 'text-green-600' : 'text-gray-600'}`}>
+                        <span className="font-medium text-black">Audio Stream</span>
+                        <span className={`font-bold ${isLive ? 'text-chogan-blue' : 'text-gray-600'}`}>
                           {isLive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                       
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Listeners</span>
+                        <span className="font-medium text-black">Listeners</span>
                         <span className="font-bold text-zero-text">{listenerCount}</span>
                       </div>
 
                       {reconnectCount > 0 && (
                         <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                          <span className="font-medium text-blue-700">Reconnect Attempts</span>
+                          <span className="font-medium text-chogan-blue">Reconnect Attempts</span>
                           <span className="font-bold text-blue-800">{reconnectCount}/{maxReconnectAttempts}</span>
                         </div>
                       )}

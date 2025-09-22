@@ -101,6 +101,9 @@
     /* Breakpoints */
     --breakpoint-2xl: 87.5rem;
     /* 1400px */
+    --color-chogan-blue: #396AFF;
+    --color-chogan-pink: #EE3988;
+    --color-chogan-black: #111111;
 }
 
 :root {
@@ -288,4 +291,48 @@
       animation: fade-in 0.3s ease-out;
     }
   }
-  
+
+
+body {
+  background: #111111;
+}
+
+.gradient-1 {
+  background-image: url('/images/background-1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.gradient-2 {
+  background-image: url('/images/background-2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #396AFF, #EE3988);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+
+
+.gradient-3 {
+  background: linear-gradient(to right, #396AFF, #EE3988);
+}
+
+
+/* scroll bar style */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #396bff23;
+  border-radius: 10px;
+}
