@@ -868,7 +868,7 @@ const Listner = () => {
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <img 
-              src="/logo/Chogan.svg" 
+              src="/logo/livello.svg" 
               alt="Chogan"
               className="object-contain mx-auto mt-16"
               loading="eager"
@@ -1130,7 +1130,7 @@ const Listner = () => {
                 </Card>
 
                 {/* Enhanced Connection Status */}
-                <Card className="gradient-3 border-0 rounded-2xl">
+                {/* <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
                     <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-6">
                       System Status
@@ -1180,7 +1180,7 @@ const Listner = () => {
                       )}
                     </div>
                   </div>
-                </Card>
+                </Card> */}
 
                 {/* Contact Support */}
                {/* <div className="text-center">
