@@ -957,7 +957,7 @@ const Listner = () => {
 
           {/* Main Player Section */}
           <div className="max-w-md lg:max-w-4xl mx-auto">
-            <div className="lg:grid lg:grid-cols-2 lg:gap-10 space-y-8 lg:space-y-0">
+            <div className="lg:grid lg:grid-cols-1 lg:gap-10 space-y-8 lg:space-y-0">
               
               {/* Left Column - Primary Controls */}
               <div className="space-y-8">
@@ -1083,9 +1083,9 @@ const Listner = () => {
               </div>
 
               {/* Right Column - Audio Level and Status */}
-              <div className="space-y-8">
+              {/* <div className="space-y-8">
                 
-                {/* Audio Level Display */}
+             
                 <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
                     <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-8 flex items-center gap-2">
@@ -1137,8 +1137,8 @@ const Listner = () => {
                   </div>
                 </Card>
 
-                {/* Enhanced Connection Status */}
-                {/* <Card className="gradient-3 border-0 rounded-2xl">
+               
+                <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
                     <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-6">
                       System Status
@@ -1188,18 +1188,18 @@ const Listner = () => {
                       )}
                     </div>
                   </div>
-                </Card> */}
+                </Card>
 
-                {/* Contact Support */}
-               {/* <div className="text-center">
+               
+               <div className="text-center">
                   <Button 
                     className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
                     onClick={() => setShowContactModal(true)}
                   >
                     Contact Support
                   </Button>
-                </div>*/}
-              </div>
+                </div>
+              </div> */}
             </div>
           </div>
         </main>
