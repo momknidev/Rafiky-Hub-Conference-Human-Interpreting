@@ -72,4 +72,11 @@ export const languages = [
 
 
 
+export const twoWayLanguages = {
+    english: true,
+    german: true,
+    french: true,
+    georgian: true,
+}
+
 

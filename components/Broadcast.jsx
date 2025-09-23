@@ -14,7 +14,7 @@ import { pushMessage } from '@/services/PusherService';
 import Dialog from './Dialog';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
-import { flagsMapping } from '@/constants/flagsMapping';
+import { flagsMapping, languages, twoWayLanguages } from '@/constants/flagsMapping';
 
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
@@ -68,8 +68,10 @@ const Broadcast = () => {
   const streamStartTimeRef = useRef(null);
   const isLiveRef = useRef(false);
   const maxReconnectAttempts = 8;
-  const { channelName, setLanguage } = useChannel();
-
+  const { channelName, setLanguage, getChannelName } = useChannel();
+  const [otherChannels, setOtherChannels] = useState({});
+  const otherChannelsPlayingRef = useRef({});
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
 
   useEffect(() => {
     setLanguage(language);
@@ -297,6 +299,88 @@ const Broadcast = () => {
       }
       agoraClient.removeAllListeners();
     };
+  }, [AgoraRTC, isSDKLoading, channelName]);
+
+
+  // subscribe to other channels
+  useEffect(() => {
+    if (!AgoraRTC || isSDKLoading) return;
+    const clients = [];
+    languages.filter((lang) => lang.value !== language).forEach((language) => {
+      const agoraClient = AgoraRTC.createClient({
+        mode: 'live',
+        codec: 'vp8',
+        role: 'audience'
+      });
+      clients.push(agoraClient);
+
+      // Enhanced event handlers
+      agoraClient.on('user-published', async (user, mediaType) => {
+        console.log("user-published");
+        if (mediaType === 'audio' && isComponentMountedRef.current) {
+          try {
+            await agoraClient.subscribe(user, mediaType);
+            const audioTrack = user.audioTrack;
+            const isPlaying = otherChannelsPlayingRef.current[language.value];
+            if (isPlaying) {
+              audioTrack.setVolume(100);
+              await audioTrack.play();
+            }
+            setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack, isLive: true, isPlaying: !!isPlaying} }));
+
+            toast.success(`${language.name} broadcast is live`, {
+              id: 'broadcast-live',
+              duration: 4000
+            });
+          } catch (error) {
+            console.error('Error subscribing to audio:', error);
+          }
+        }
+      });
+
+      agoraClient.on('user-unpublished', (user, mediaType) => {
+        if (mediaType === 'audio' && isComponentMountedRef.current) {
+          setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack: null, isLive: false, isPlaying: false} }));
+          toast.error(`${language.name} broadcast is offline`, {
+            id: 'broadcast-offline',
+            duration: 4000
+          });
+        }
+      });
+
+      // Enhanced channel joining with timeout
+      const joinChannel = async () => {
+
+        try {
+          const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+          const CHANNEL_NAME = getChannelName(language.value);
+          const { token, uid } = await generateToken("SUBSCRIBER", CHANNEL_NAME);
+
+          if (!APP_ID || !CHANNEL_NAME) {
+            throw new Error(`Missing required Agora configuration`);
+          }
+
+          const joinPromise = (async () => {
+            await agoraClient.setClientRole('audience');
+            await agoraClient.join(APP_ID, CHANNEL_NAME, token, uid);
+          })();
+
+
+          await Promise.race([joinPromise]);
+        } catch (error) {
+          console.error("Error joining channel:", error);
+        }
+      };
+
+      joinChannel();
+
+    })
+
+    return () => {
+      clients.forEach(client => {
+        client.removeAllListeners();
+      });
+    };
   }, [AgoraRTC, isSDKLoading]);
 
 
@@ -339,8 +423,8 @@ const Broadcast = () => {
 
       try {
         const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = channelName;
-        const { token, uid } = await generateToken("SUBSCRIBER", channelName);
+        const CHANNEL_NAME = getChannelName(language);
+        const { token, uid } = await generateToken("SUBSCRIBER", CHANNEL_NAME);
 
         if (!APP_ID || !CHANNEL_NAME) {
           throw new Error(`Missing required Agora configuration`);
@@ -364,7 +448,7 @@ const Broadcast = () => {
       agoraClient.removeAllListeners();
       agoraClient.leave().catch(console.error);
     };
-  }, [AgoraRTC, isSDKLoading, channelName]);
+  }, [AgoraRTC, isSDKLoading, language]);
 
   // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
@@ -587,7 +671,8 @@ const Broadcast = () => {
   useEffect(() => {
     const fetchListenerCount = async () => {
       try {
-        const res = await getBroadcastInfoRequest(channelName);
+        const CHANNEL_NAME = getChannelName(language);
+        const res = await getBroadcastInfoRequest(CHANNEL_NAME);
         const count = res.data?.data?.audience_total || 0;
         const hostcount = res.data?.data?.broadcasters || 0;
         setListenerCount(count);
@@ -605,7 +690,7 @@ const Broadcast = () => {
     fetchListenerCount();
     const interval = setInterval(fetchListenerCount, 3000); // More frequent updates
     return () => clearInterval(interval);
-  }, [isLive, channelName]);
+  }, [isLive]);
 
   // Initialize microphone on component mount (only after SDK loads)
   useEffect(() => {
@@ -621,7 +706,8 @@ const Broadcast = () => {
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
     });
-    const channel = pusher.subscribe(channelName);
+    const CHANNEL_NAME = getChannelName(language);
+    const channel = pusher.subscribe(CHANNEL_NAME);
     channel.bind('on-request-to-handover', (data) => {
       console.log(isLiveRef.current, "hello");
       if (isLiveRef.current) {
@@ -639,35 +725,59 @@ const Broadcast = () => {
 
     return () => {
       channel.unbind_all();
-      pusher.unsubscribe(channelName);
+      pusher.unsubscribe(CHANNEL_NAME);
       pusher.disconnect();
     };
-  }, [channelName]);
+  }, [language]);
 
 
   const sendRequestToHandover = async () => {
     setHandoverRequestResponse(null);
     setWaitingForResponseToHandoverRquestPopup(true);
+    const CHANNEL_NAME = getChannelName(language);
     await pushMessage("on-request-to-handover", {
       message: "Can you handover the broadcast to me?",
-    }, channelName);
+    }, CHANNEL_NAME);
   };
 
   const sendAcceptToHandover = async () => {
     await handleStopStream()
     setOpenRequestToHandoverPopup(false);
+    const CHANNEL_NAME = getChannelName(language);
     await pushMessage("on-accept-to-handover", {
       message: "Yes, I will handover the broadcast to you.",
-    }, channelName);
+    }, CHANNEL_NAME);
   };
 
   const sendRejectToHandover = async () => {
     setOpenRequestToHandoverPopup(false);
+    const CHANNEL_NAME = getChannelName(language);
     await pushMessage("on-reject-to-handover", {
       message: "No, I will not handover the broadcast to you.",
-    }, channelName);
+    }, CHANNEL_NAME);
   };
 
+  const handlePlayOtherChannel = async (language) => {
+    if (otherChannels[language]?.isPlaying) {
+      otherChannels[language]?.audioTrack?.setVolume(0);
+      await otherChannels[language]?.audioTrack?.stop();
+      setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: false } }));
+      otherChannelsPlayingRef.current[language] = false;
+    } else {
+      otherChannels[language]?.audioTrack?.setVolume(100);
+      await otherChannels[language]?.audioTrack?.play();
+      setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: true } }));
+      otherChannelsPlayingRef.current[language] = true;
+    }
+  };
+
+  const handleSelectLanguage = (language) => {
+    setSelectedLanguage(language);
+    setLanguage(language);
+    if(isLiveRef.current) {
+      handleStopStream();
+    }
+  };
 
 
   // Utility functions
@@ -1062,13 +1172,33 @@ const Broadcast = () => {
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Main Controls */}
             <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
-              <div className="p-10">
+              <div className="px-10 py-5">
                 <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10 text-center">
                   Broadcast Controls
                 </h3>
 
                 <div className="space-y-10">
                   {/* Main Action Button */}
+                  {
+                    twoWayLanguages[language] && (
+                      <div className="bg-gray-300 grid grid-cols-2 gap-0">
+                        <Button
+                          onClick={() => handleSelectLanguage(language)}
+                          className={`px-2 py-2 cursor-pointer text-white ${selectedLanguage !== 'italian' ? 'bg-zero-green hover:bg-zero-green/90' : 'bg-gray-300 text-zero-text hover:bg-gray-300/90'}`}
+                          size="lg"
+                        >
+                          {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}
+                        </Button>
+                        <Button
+                          onClick={() => handleSelectLanguage('italian')}
+                          className={`px-2 py-2 cursor-pointer text-white ${selectedLanguage === 'italian' ? 'bg-zero-green hover:bg-zero-green/90' : 'bg-gray-300 text-zero-text hover:bg-gray-300/90'}`}
+                          size="lg"
+                        >
+                          Italian
+                        </Button>
+                      </div>
+                    )
+                  }
                   <div className="text-center">
                     {
                       (broadcasterCount > 1 && !isLive && !loading) ? (
@@ -1171,9 +1301,14 @@ const Broadcast = () => {
               </div>
             </Card>
 
+
+
+
+
+
             {/* Stream Information */}
             <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
-              <div className="p-10">
+              <div className="px-10 py-5">
                 <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10">
                   Stream Information
                 </h3>
@@ -1298,6 +1433,39 @@ const Broadcast = () => {
                 </div>
               </div>
             </Card>
+
+
+
+            <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
+              <div className="px-10 py-5">
+                <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10 text-center">
+                  Other Channels
+                </h3>
+
+                <div className="h-[25rem] overflow-y-auto space-y-2">
+                  {
+                    languages.filter((lang) => lang.value !== language).map((language) => (
+                      <div key={language.value} className='w-full px-2 py-3 bg-gray-50 rounded-2xl flex items-center justify-between'>
+                        <div className='flex items-start gap-2 flex-col'>
+                          <div className='flex items-center gap-2'>
+                            <img src={language.flag} alt={language.name} className='w-6 h-6' />
+                            <p className="text-zero-text/70 font-medium">{language.name}</p>
+                          </div>
+                          <p className={`text-zero-text/70 font-light ${otherChannels[language.value]?.isLive ? '!text-zero-status-good' : '!text-zero-warning'}`}>{otherChannels[language.value]?.isLive ? 'Live' : 'Offline'}</p>
+                        </div>
+
+                        <Button variant="outline" size="icon" className={`rounded-full border-none text-white bg-zero-green hover:bg-zero-green/90 hover:text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`} disabled={!otherChannels[language.value]?.isLive} onClick={() => handlePlayOtherChannel(language.value)}>
+                          {otherChannels[language.value]?.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+
+
+            </Card>
+
           </div>
 
           {/* Broadcasting Tips */}
