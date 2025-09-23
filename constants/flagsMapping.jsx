@@ -3,13 +3,13 @@ export const flagsMapping = {
     german: '/flags/de.svg',
     french: '/flags/fr.svg',
     italian: '/flags/it.svg',
-    rumeno: '/flags/ru.svg',
-    croato: '/flags/cr.svg',
-    postoghese: '/flags/br.svg',
-    georgiano: '/flags/ge.svg',
-    arabo: '/flags/ar.svg',
-    ceco: '/flags/cz.svg',
-    ungherese: '/flags/hu.svg',
+    romanian: '/flags/ro.svg',
+    croatian: '/flags/hr.svg',
+    portuguese: '/flags/br.svg',
+    georgian: '/flags/ge.svg',
+    arabic: '/flags/ar.svg',
+    czech: '/flags/cz.svg',
+    hungarian: '/flags/hu.svg',
 }
 
 export const languages = [
@@ -35,37 +35,37 @@ export const languages = [
     },
     {
         name: 'ROMANIAN',
-        value: 'Rumeno',
+        value: 'romanian',
         flag: '/flags/ro.svg',
     },
     {
         name: 'CROATIAN',
-        value: 'croato',
+        value: 'croatian',
         flag: '/flags/hr.svg',
     },
     {
         name: 'PORTUGUESE',
-        value: 'postoghese',
+        value: 'portuguese',
         flag: '/flags/br.svg',
     },
     {
         name: 'GEORGIAN',
-        value: 'georgiano',
+        value: 'georgian',
         flag: '/flags/ge.svg',
     },
     {
         name: 'ARABIC',
-        value: 'arabo',
+        value: 'arabic',
         flag: '/flags/sa.svg',
     },
     {
         name: 'CZECH',
-        value: 'ceco',
+        value: 'czech',
         flag: '/flags/cz.svg',
     },
     {
         name: 'HUNGARIAN',
-        value: 'ungherese',
+        value: 'hungarian',
         flag: '/flags/hu.svg',
     },
 ]
