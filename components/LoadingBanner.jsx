@@ -10,6 +10,11 @@ const LoadingBanner = () => {
         }, 4000);
     }, []);
 
+
+    useEffect(() => {
+        window.document.title = `Loading...`;
+      }, []);
+
     return (
         <div className='h-screen w-full bg-chogan-black flex items-center justify-center gradient-1'>
             {

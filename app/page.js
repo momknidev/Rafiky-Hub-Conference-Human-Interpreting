@@ -2,15 +2,18 @@
   import React, { useEffect, useState } from 'react'
 import LanguageSelect from '@/components/LanguageSelect';
 import LoadingBanner from '@/components/LoadingBanner';
+import { useChannel } from '@/context/ChannelContext';
 
 const ListenerPage = () => {
-  const [loading, setLoading] = useState(true);
+  const { loadAlreadyDone, setLoadAlreadyDone } = useChannel();
   useEffect(() => {
     setTimeout(() => {
-      setLoading(false);
+      setLoadAlreadyDone(true);
     }, 5000);
   }, []);
-  return loading ? <LoadingBanner/> : <LanguageSelect/>
+
+  console.log(loadAlreadyDone);
+  return !loadAlreadyDone ? <LoadingBanner/> : <LanguageSelect/>
 }
 
 export default ListenerPage

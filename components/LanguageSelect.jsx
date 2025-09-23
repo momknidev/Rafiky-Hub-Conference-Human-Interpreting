@@ -1,8 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { flagsMapping, languages } from '@/constants/flagsMapping';
 import Link from 'next/link';
 const LanguageSelect = () => {
+  useEffect(() => {
+    window.document.title = `Language Select`;
+  }, []);
+
   return (
     <div className='h-screen w-screen gradient-2 flex flex-col items-center justify-start py-10 px-8 pt-20'>
       <img src="/logo/livello.svg" alt="Livello Logo" className='w-[14rem] md:w-[17rem] object-cover' />

@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { generateToken } from '@/utils/generateToken';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
 import { flagsMapping } from '@/constants/flagsMapping';
+import Head from 'next/head';
 
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
@@ -861,8 +863,15 @@ const Listner = () => {
   //   );
   // }
 
+  useEffect(() => {
+    window.document.title = `Listener - ${language?.slice(0, 1).toUpperCase()}${language?.slice(1).toLowerCase()}`;
+  }, []);
+
   return (
     <>
+    <Head>
+      <title>Listener - {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}</title>
+    </Head>
       <div className="min-h-screen bg-zero-beige gradient-2">
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
@@ -1018,7 +1027,7 @@ const Listner = () => {
                 </Card>
 
                 {/* Audio Controls */}
-                <Card className="gradient-3 border-0 rounded-2xl">
+                {/* <Card className="gradient-3 border-0 rounded-2xl">
                   <div className="p-8">
                     <h4 className="text-xl lg:text-2xl font-inter font-bold text-white mb-8 flex items-center gap-3">
                       <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-blue" />
@@ -1039,7 +1048,6 @@ const Listner = () => {
                       </button>
                       
                       <div className="flex-1 space-y-3">
-                        {/* {!isIOS ? (  */}
                         {false ? ( 
                           <>
                             <input
@@ -1063,15 +1071,15 @@ const Listner = () => {
                             <p className="text-sm text-white/70 font-inter">
                               Please use your device's volume buttons to adjust audio level
                             </p>
-                            {/* <div className="mt-2 text-lg font-bold text-white">
+                            <div className="mt-2 text-lg font-bold text-white">
                               {isMuted ? 'Muted' : 'Volume: Use Device Controls'}
-                            </div> */}
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                </Card>
+                </Card> */}
               </div>
 
               {/* Right Column - Audio Level and Status */}

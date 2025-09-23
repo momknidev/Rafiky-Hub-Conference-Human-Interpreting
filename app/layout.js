@@ -12,10 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Broadcaster",
-  description: "Broadcaster",
-};
+// export const metadata = {
+//   title: "Broadcaster",
+//   description: "Broadcaster",
+// };
 
 export default function RootLayout({ children }) {
   return (

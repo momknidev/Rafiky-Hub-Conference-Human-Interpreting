@@ -34,12 +34,12 @@ export const languages = [
         flag: '/flags/fr.svg',
     },
     {
-        name: 'RUMENO',
+        name: 'ROMANIAN',
         value: 'Rumeno',
         flag: '/flags/ro.svg',
     },
     {
-        name: 'CROATO',
+        name: 'CROATIAN',
         value: 'croato',
         flag: '/flags/hr.svg',
     },
@@ -49,22 +49,22 @@ export const languages = [
         flag: '/flags/br.svg',
     },
     {
-        name: 'GEORGIANO',
+        name: 'GEORGIAN',
         value: 'georgiano',
         flag: '/flags/ge.svg',
     },
     {
-        name: 'ARABO',
+        name: 'ARABIC',
         value: 'arabo',
         flag: '/flags/sa.svg',
     },
     {
-        name: 'CECO',
+        name: 'CZECH',
         value: 'ceco',
         flag: '/flags/cz.svg',
     },
     {
-        name: 'UNGHERESE',
+        name: 'HUNGARIAN',
         value: 'ungherese',
         flag: '/flags/hu.svg',
     },
