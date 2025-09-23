@@ -774,7 +774,7 @@ const Broadcast = () => {
   const handleSelectLanguage = (language) => {
     setSelectedLanguage(language);
     setLanguage(language);
-    if(isLiveRef.current) {
+    if (isLiveRef.current) {
       handleStopStream();
     }
   };
@@ -1316,23 +1316,55 @@ const Broadcast = () => {
                 <div className="space-y-8">
                   {
                     !isLive && (
-                      <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between flex-col">
-                        <span className="text-zero-text font-medium block text-2xl mb-4">Partner Audio</span>
-                        <Button
-                          disabled={!remoteAudioTrack}
-                          onClick={handlePartnerAudio}
-                          variant="outline"
-                          size="icon"
-                          className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer"
-                        >
-                          {isPartnerAudioPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                        </Button>
+                      <div className='grid grid-cols-2 gap-2'>
 
-                        {
-                          !remoteAudioTrack && (
-                            <span className="text-zero-text/70 block mt-5">No partner audio</span>
-                          )
-                        }
+                        <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between flex-col">
+                          <span className="text-zero-text font-medium block text-2xl mb-4">Partner Audio</span>
+                          <Button
+                            disabled={!remoteAudioTrack}
+                            onClick={handlePartnerAudio}
+                            variant="outline"
+                            size="icon"
+                            className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer"
+                          >
+                            {isPartnerAudioPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                          </Button>
+
+                          {
+                            !remoteAudioTrack && (
+                              <span className="text-zero-text/70 block mt-5">No partner audio</span>
+                            )
+                          }
+                        </div>
+
+                        <div className="p-4 bg-gray-50 rounded-2xl">
+                          <span className="text-zero-text font-medium block mb-1">Other Channel</span>
+                          <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
+                            {
+                              languages.filter((lang) => lang.value !== language).map((language) => (
+                                <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
+                                  {
+                                    otherChannels[language.value]?.isLive && (
+                                      <span className='h-2 w-2 rounded-full bg-blue-500 absolute top-1/2 -left-2 -translate-y-1/2 animate-pulse'></span>
+                                    )
+                                  }
+                                  <h3 className='flex items-center gap-2'><img src={language.flag} alt={language.value} className='w-5 h-5' />
+                                  {language.name}</h3>
+
+                                  <Button
+                                    onClick={() => handlePlayOtherChannel(language.value)}
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer h-7 w-7"
+                                    disabled={!otherChannels[language.value]?.isLive}
+                                  >
+                                    {otherChannels[language.value]?.isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                  </Button>
+                                </div>
+                              ))
+                            }
+                            </div>
+                        </div>
                       </div>
                     )
                   }
@@ -1377,7 +1409,7 @@ const Broadcast = () => {
                   </div>
 
                   {/* Live Stats */}
-                  {isLive && (
+                  {/* {isLive && (
                     <div className="border-t border-gray-200 pt-8">
                       <h4 className="font-playfair font-bold text-zero-text mb-6 text-2xl flex items-center gap-3">
                         <Activity className="h-6 w-6" />
@@ -1410,7 +1442,7 @@ const Broadcast = () => {
                         </div>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Connection Issues Warning */}
                   {(connectionStatus === 'error' || reconnectAttempts >= maxReconnectAttempts || connectionError) && (
@@ -1436,35 +1468,6 @@ const Broadcast = () => {
 
 
 
-            <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
-              <div className="px-10 py-5">
-                <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10 text-center">
-                  Other Channels
-                </h3>
-
-                <div className="h-[25rem] overflow-y-auto space-y-2">
-                  {
-                    languages.filter((lang) => lang.value !== language).map((language) => (
-                      <div key={language.value} className='w-full px-2 py-3 bg-gray-50 rounded-2xl flex items-center justify-between'>
-                        <div className='flex items-start gap-2 flex-col'>
-                          <div className='flex items-center gap-2'>
-                            <img src={language.flag} alt={language.name} className='w-6 h-6' />
-                            <p className="text-zero-text/70 font-medium">{language.name}</p>
-                          </div>
-                          <p className={`text-zero-text/70 font-light ${otherChannels[language.value]?.isLive ? '!text-zero-status-good' : '!text-zero-warning'}`}>{otherChannels[language.value]?.isLive ? 'Live' : 'Offline'}</p>
-                        </div>
-
-                        <Button variant="outline" size="icon" className={`rounded-full border-none text-white bg-zero-green hover:bg-zero-green/90 hover:text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`} disabled={!otherChannels[language.value]?.isLive} onClick={() => handlePlayOtherChannel(language.value)}>
-                          {otherChannels[language.value]?.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    ))
-                  }
-                </div>
-              </div>
-
-
-            </Card>
 
           </div>
 

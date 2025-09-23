@@ -7,7 +7,7 @@ export const flagsMapping = {
     croatian: '/flags/hr.svg',
     portuguese: '/flags/br.svg',
     georgian: '/flags/ge.svg',
-    arabic: '/flags/ar.svg',
+    arabic: '/flags/sa.svg',
     czech: '/flags/cz.svg',
     hungarian: '/flags/hu.svg',
 }
