@@ -11,9 +11,9 @@ const LanguageSelect = () => {
     <div className='h-screen w-screen gradient-2 flex flex-col items-center justify-start py-10 px-8 pt-20 overflow-y-auto'>
       <img src="/logo/livello.svg" alt="Livello Logo" className='w-[14rem] md:w-[17rem] object-cover' />
 
-      <div className='w-full flex flex-col items-center justify-start mt-10'>
-        <h1 className='text-white text-2xl md:text-4xl uppercase language-title'>Choose your language</h1>
-        <p className='text-white/80 mt-2 text-lg font-light'>Translate the event in your language</p>
+      <div className='w-full flex flex-col items-center justify-center mt-10'>
+        <h1 className='text-white text-2xl md:text-4xl uppercase language-title text-center'>Choose your language</h1>
+        <p className='text-white/80 mt-2 text-lg font-light text-center'>Translate the event in your language</p>
       </div>
 
       <div className='w-full flex flex-col items-center justify-start mt-10'>

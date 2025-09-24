@@ -5,7 +5,7 @@ export const flagsMapping = {
     italian: '/flags/it.svg',
     romanian: '/flags/ro.svg',
     croatian: '/flags/hr.svg',
-    portuguese: '/flags/br.svg',
+    portuguese: '/flags/pt.svg',
     georgian: '/flags/ge.svg',
     arabic: '/flags/sa.svg',
     czech: '/flags/cz.svg',
@@ -46,7 +46,7 @@ export const languages = [
     {
         name: 'PORTUGUESE',
         value: 'portuguese',
-        flag: '/flags/br.svg',
+        flag: '/flags/pt.svg',
     },
     {
         name: 'GEORGIAN',
