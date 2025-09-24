@@ -345,3 +345,7 @@ body {
   font-weight: 700;
   font-style: normal;
 }
+
+* {
+  -webkit-overflow-scrolling: touch
+}

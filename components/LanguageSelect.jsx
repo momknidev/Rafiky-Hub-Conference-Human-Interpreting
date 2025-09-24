@@ -16,7 +16,7 @@ const LanguageSelect = () => {
         <p className='text-white/80 mt-2 text-lg font-light text-center'>Translate the event in your language</p>
       </div>
 
-      <div className='w-full flex flex-col items-center justify-start mt-10'>
+      <div className='w-full flex flex-col items-center justify-start mt-10 pb-10'>
         <div className='w-full grid grid-cols-2 md:grid-cols-3 gap-5'>
           {
             languages.map((language) => (
