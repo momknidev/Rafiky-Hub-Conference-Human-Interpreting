@@ -671,7 +671,7 @@ const Broadcast = () => {
   useEffect(() => {
     const fetchListenerCount = async () => {
       try {
-        const CHANNEL_NAME = getChannelName(language);
+        const CHANNEL_NAME = channelName;
         const res = await getBroadcastInfoRequest(CHANNEL_NAME);
         const count = res.data?.data?.audience_total || 0;
         const hostcount = res.data?.data?.broadcasters || 0;
@@ -690,7 +690,7 @@ const Broadcast = () => {
     fetchListenerCount();
     const interval = setInterval(fetchListenerCount, 3000); // More frequent updates
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, channelName]);
 
   // Initialize microphone on component mount (only after SDK loads)
   useEffect(() => {
@@ -764,6 +764,17 @@ const Broadcast = () => {
       setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: false } }));
       otherChannelsPlayingRef.current[language] = false;
     } else {
+      //if the other channel is playing then stop it
+      Object.keys(otherChannels).forEach(async (key) => {
+        if (otherChannels[key]?.isPlaying) {
+          otherChannels[key]?.audioTrack?.setVolume(0);
+          await otherChannels[key]?.audioTrack?.stop();
+          setOtherChannels(prev => ({ ...prev, [key]: { ...prev[key], isPlaying: false } }));
+          otherChannelsPlayingRef.current[key] = false;
+        }
+      });
+      
+
       otherChannels[language]?.audioTrack?.setVolume(100);
       await otherChannels[language]?.audioTrack?.play();
       setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: true } }));
@@ -881,6 +892,16 @@ const Broadcast = () => {
       remoteAudioTrack.setVolume(100);
       await remoteAudioTrack.play();
       setIsPartnerAudioPlaying(true);
+
+      //if the other audio playing then stop it
+      Object.keys(otherChannels).forEach(async (key) => {
+        if (otherChannels[key]?.isPlaying) {
+          otherChannels[key]?.audioTrack?.setVolume(0);
+          await otherChannels[key]?.audioTrack?.stop();
+          setOtherChannels(prev => ({ ...prev, [key]: { ...prev[key], isPlaying: false } }));
+          otherChannelsPlayingRef.current[key] = false;
+        }
+      });
     }
   };
 
@@ -1201,7 +1222,14 @@ const Broadcast = () => {
                   }
                   <div className="text-center">
                     {
-                      (broadcasterCount > 1 && !isLive && !loading) ? (
+                      loading ? (
+                        <Button
+                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
+                          size="lg"
+                        >
+                          Loading...
+                        </Button>
+                      ) : (broadcasterCount > 1 && !isLive && !loading) ? (
                         <Button
                           onClick={sendRequestToHandover}
                           className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
