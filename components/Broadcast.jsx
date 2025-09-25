@@ -326,7 +326,7 @@ const Broadcast = () => {
               audioTrack.setVolume(100);
               await audioTrack.play();
             }
-            setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack, isLive: true, isPlaying: !!isPlaying} }));
+            setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack, isLive: true, isPlaying: !!isPlaying } }));
 
             toast.success(`${language.name} broadcast is live`, {
               id: 'broadcast-live',
@@ -340,7 +340,7 @@ const Broadcast = () => {
 
       agoraClient.on('user-unpublished', (user, mediaType) => {
         if (mediaType === 'audio' && isComponentMountedRef.current) {
-          setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack: null, isLive: false, isPlaying: false} }));
+          setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack: null, isLive: false, isPlaying: false } }));
           toast.error(`${language.name} broadcast is offline`, {
             id: 'broadcast-offline',
             duration: 4000
@@ -1349,7 +1349,7 @@ const Broadcast = () => {
                                     )
                                   }
                                   <h3 className='flex items-center gap-2'><img src={language.flag} alt={language.value} className='w-5 h-5' />
-                                  {language.name}</h3>
+                                    {language.name}</h3>
 
                                   <Button
                                     onClick={() => handlePlayOtherChannel(language.value)}
@@ -1363,7 +1363,40 @@ const Broadcast = () => {
                                 </div>
                               ))
                             }
-                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  {
+                    isLive && (
+                      <div className="p-4 bg-gray-50 rounded-2xl">
+                        <span className="text-zero-text font-medium block mb-1">Other Channel</span>
+                        <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
+                          {
+                            languages.filter((lang) => lang.value !== language).map((language) => (
+                              <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
+                                {
+                                  otherChannels[language.value]?.isLive && (
+                                    <span className='h-2 w-2 rounded-full bg-blue-500 absolute top-1/2 -left-2 -translate-y-1/2 animate-pulse'></span>
+                                  )
+                                }
+                                <h3 className='flex items-center gap-2'><img src={language.flag} alt={language.value} className='w-5 h-5' />
+                                  {language.name}</h3>
+
+                                <Button
+                                  onClick={() => handlePlayOtherChannel(language.value)}
+                                  variant="outline"
+                                  size="icon"
+                                  className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer h-7 w-7"
+                                  disabled={!otherChannels[language.value]?.isLive}
+                                >
+                                  {otherChannels[language.value]?.isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                </Button>
+                              </div>
+                            ))
+                          }
                         </div>
                       </div>
                     )
