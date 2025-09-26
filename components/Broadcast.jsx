@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import OnAirIndicator from '@/components/OnAirIndicator';
 import AudioLevelMeter from '@/components/AudioLevelMeter';
 import ListenerCountBadge from '@/components/ListenerCountBadge';
-import { Mic, MicOff, ArrowLeft, RefreshCcw, Monitor, Radio, BarChart3, Settings, Wifi, Clock, Users, Signal, Activity, Globe, Headphones, AlertCircle, CheckCircle, Play, Pause } from 'lucide-react';
+import { Mic, MicOff, ArrowLeft, RefreshCcw, Monitor, Radio, BarChart3, Settings, Wifi, Clock, Users, Signal, Activity, Globe, Headphones, AlertCircle, CheckCircle, Play, Pause, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
 import { generateToken } from '@/utils/generateToken';
@@ -14,7 +14,7 @@ import { pushMessage } from '@/services/PusherService';
 import Dialog from './Dialog';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
-import { flagsMapping, languages, twoWayLanguages } from '@/constants/flagsMapping';
+import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '@/constants/flagsMapping';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Async Agora SDK loader
@@ -74,6 +74,12 @@ const Broadcast = () => {
   const otherChannelsPlayingRef = useRef({});
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
+  const channelNameRef = useRef(channelName);
+
+  useEffect(() => {
+    channelNameRef.current = channelName;
+  }, [channelName]);
+
   useEffect(() => {
     setLanguage(language);
   }, [language]);
@@ -300,25 +306,28 @@ const Broadcast = () => {
       }
       agoraClient.removeAllListeners();
     };
-  }, [AgoraRTC, isSDKLoading, channelName]);
+  }, [AgoraRTC, isSDKLoading]);
 
 
   // subscribe to other channels
   useEffect(() => {
     if (!AgoraRTC || isSDKLoading) return;
+    console.log("loaderrrrrrr 1")
     const clients = [];
-    languages.filter((lang) => lang.value !== language).forEach((language) => {
+    otherLanguageChannel.filter((lang) => lang.value !== language).forEach((language) => {
       const agoraClient = AgoraRTC.createClient({
         mode: 'live',
         codec: 'vp8',
         role: 'audience'
       });
+
       clients.push(agoraClient);
 
       // Enhanced event handlers
       agoraClient.on('user-published', async (user, mediaType) => {
         console.log("user-published");
-        if (mediaType === 'audio' && isComponentMountedRef.current) {
+        if (mediaType === 'audio' && isComponentMountedRef.current && channelNameRef.current !== getChannelName(language.value)) {
+          console.log("user-published 1",language.value,channelNameRef.current);
           try {
             await agoraClient.subscribe(user, mediaType);
             const audioTrack = user.audioTrack;
@@ -389,8 +398,7 @@ const Broadcast = () => {
   // Initialize Agora client as listener
   useEffect(() => {
     if (!AgoraRTC || isSDKLoading) return;
-
-    console.log('🚀 Initializing Universal Agora client...');
+    console.log("loaderrrrrrr 2")
 
     const agoraClient = AgoraRTC.createClient({
       mode: 'live',
@@ -444,13 +452,15 @@ const Broadcast = () => {
       }
     };
 
+
     joinChannel();
 
     return () => {
+      console.log("loaderrrrrrr removeAllListeners 2");
       agoraClient.removeAllListeners();
       agoraClient.leave().catch(console.error);
     };
-  }, [AgoraRTC, isSDKLoading, language]);
+  }, [AgoraRTC, isSDKLoading]);
 
   // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
@@ -708,7 +718,7 @@ const Broadcast = () => {
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
     });
-    const CHANNEL_NAME = getChannelName(language);
+    const CHANNEL_NAME = channelName;
     const channel = pusher.subscribe(CHANNEL_NAME);
     channel.bind('on-request-to-handover', (data) => {
       console.log(isLiveRef.current, "hello");
@@ -730,13 +740,13 @@ const Broadcast = () => {
       pusher.unsubscribe(CHANNEL_NAME);
       pusher.disconnect();
     };
-  }, [language]);
+  }, [channelName]);
 
 
   const sendRequestToHandover = async () => {
     setHandoverRequestResponse(null);
     setWaitingForResponseToHandoverRquestPopup(true);
-    const CHANNEL_NAME = getChannelName(language);
+    const CHANNEL_NAME = channelName;
     await pushMessage("on-request-to-handover", {
       message: "Can you handover the broadcast to me?",
     }, CHANNEL_NAME);
@@ -745,7 +755,7 @@ const Broadcast = () => {
   const sendAcceptToHandover = async () => {
     await handleStopStream()
     setOpenRequestToHandoverPopup(false);
-    const CHANNEL_NAME = getChannelName(language);
+    const CHANNEL_NAME = channelName;
     await pushMessage("on-accept-to-handover", {
       message: "Yes, I will handover the broadcast to you.",
     }, CHANNEL_NAME);
@@ -753,7 +763,7 @@ const Broadcast = () => {
 
   const sendRejectToHandover = async () => {
     setOpenRequestToHandoverPopup(false);
-    const CHANNEL_NAME = getChannelName(language);
+    const CHANNEL_NAME = channelName;
     await pushMessage("on-reject-to-handover", {
       message: "No, I will not handover the broadcast to you.",
     }, CHANNEL_NAME);
@@ -982,7 +992,7 @@ const Broadcast = () => {
               handoverRequestResponse === "accepted" ? (
                 <>
                   <p className='text-sm text-green-500 text-center mb-5'>Handover request accepted</p>
-                  <Button onClick={() => { setWaitingForResponseToHandoverRquestPopup(false); handleStartStream() }} className='bg-zero-green text-white hover:bg-zero-green/90'>Start Broadcasting</Button>
+                  <Button onClick={() => { setWaitingForResponseToHandoverRquestPopup(false); handleStartStream() }} className='bg-zero-green text-white hover:bg-zero-green/90'>On Air</Button>
                 </>
               )
                 : (handoverRequestResponse === "rejected") ? (
@@ -1058,46 +1068,9 @@ const Broadcast = () => {
 
         {/* Main Content */}
         <main className="container mx-auto p-8 max-w-7xl">
-          {/* Festival Hero Section */}
-          {/* <div className="mb-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-zero-green/20 via-zero-blue/10 to-zero-navy/20 backdrop-blur-sm shadow-2xl border border-white/20">
-          <div className="absolute inset-0 bg-gradient-to-r from-zero-green/5 to-zero-blue/5"></div>
-          <div className="relative p-12">
-            <div className="mb-8 h-32 bg-gradient-to-r from-zero-green to-zero-blue rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="text-center text-white">
-                <h3 className="text-2xl font-playfair font-bold">GB FESTIVAL</h3>
-                <p className="text-sm opacity-90 font-inter">Green & Blue Festival</p>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <h2 className="text-5xl font-playfair font-bold text-zero-text mb-4 tracking-tight">
-                Green & Blue Festival 2025
-              </h2>
-              <p className="text-2xl font-inter text-zero-text/80 mb-8 font-light">
-                Live English Interpretation Broadcasting
-              </p>
-              
-              <div className="flex items-center justify-center gap-6 flex-wrap">
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-                  <Mic className="h-5 w-5 text-zero-blue" />
-                  <span className="font-semibold text-zero-text font-inter">Professional Audio</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-                  <Signal className="h-5 w-5 text-zero-green" />
-                  <span className="font-semibold text-zero-text font-inter">Auto-Recovery</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-                  <Wifi className="h-5 w-5 text-zero-navy" />
-                  <span className="font-semibold text-zero-text font-inter">Enhanced Stability</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> */}
-
           {/* Status Cards Row */}
-          <div className="grid gap-8 md:grid-cols-4 mb-12">
-            {/* Stream Status */}
+          {/* <div className="grid gap-8 md:grid-cols-4 mb-12">
+        
             <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -1120,7 +1093,6 @@ const Broadcast = () => {
               </div>
             </Card>
 
-            {/* Microphone Status */}
             <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -1152,8 +1124,7 @@ const Broadcast = () => {
                 </div>
               </div>
             </Card>
-
-            {/* Audience */}
+            
             <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -1174,7 +1145,6 @@ const Broadcast = () => {
               </div>
             </Card>
 
-            {/* Network Quality */}
             <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -1194,14 +1164,14 @@ const Broadcast = () => {
                 </div>
               </div>
             </Card>
-          </div>
+          </div> */}
 
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Main Controls */}
             <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
               <div className="px-10 py-5">
-                <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10 text-center">
-                  Broadcast Controls
+                <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10 text-left">
+                  Outgoing Audio Controls
                 </h3>
 
                 <div className="space-y-10">
@@ -1233,7 +1203,7 @@ const Broadcast = () => {
                           className="w-full  bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
                           size="lg"
                         >
-                          Loading...
+                          <Loader2 className="mr-4 h-10 w-10 animate-spin" />
                         </Button>
                       ) : (broadcasterCount > 1 && !isLive && !loading) ? (
                         <Button
@@ -1250,8 +1220,8 @@ const Broadcast = () => {
                           className="w-full bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                           size="lg"
                         >
-                          <Mic className="mr-4 h-10 w-10" />
-                          Start Broadcasting
+                          <Mic className="mr-4 h-20 w-20" />
+                          On Air
                         </Button>
                       ) : (
                         <Button
@@ -1260,8 +1230,8 @@ const Broadcast = () => {
                           className="w-full border-zero-warning text-zero-warning hover:bg-zero-warning hover:text-white text-2xl px-12 py-10 font-bold font-inter rounded-2xl shadow-xl"
                           size="lg"
                         >
-                          <MicOff className="mr-4 h-10 w-10" />
-                          Stop Broadcasting
+                          <MicOff className="mr-4 h-20 w-20" />
+                          Off Air
                         </Button>
                       )}
                   </div>
@@ -1344,7 +1314,7 @@ const Broadcast = () => {
             <Card className="bg-white/90 backdrop-blur-xl shadow-2xl border-0 rounded-3xl overflow-hidden">
               <div className="px-10 py-5">
                 <h3 className="text-4xl font-playfair font-bold text-zero-text mb-10">
-                  Stream Information
+                  Incoming Audio
                 </h3>
 
                 <div className="space-y-8">
@@ -1374,10 +1344,49 @@ const Broadcast = () => {
                         </div>
 
                         <div className="p-4 bg-gray-50 rounded-2xl">
-                          <span className="text-zero-text font-medium block mb-1">Relay Channel</span>
+                          <span className="text-zero-text font-bold block mb-1 uppercase">Relay Channel</span>
                           <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
                             {
-                              languages.filter((lang) => lang.value !== language).map((language) => (
+                              otherLanguageChannel.filter((lang) => (lang.value !== language)).length > 0 ? (
+                                otherLanguageChannel.filter((lang) => (lang.value !== language)).map((language) => (
+                                  <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
+                                    {
+                                      otherChannels[language.value]?.isLive && (
+                                        <span className='h-2 w-2 rounded-full bg-blue-500 absolute top-1/2 -left-2 -translate-y-1/2 animate-pulse'></span>
+                                      )
+                                    }
+                                    <h3 className='flex items-center gap-2'><img src={language.flag} alt={language.value} className='w-5 h-5' />
+                                      {language.name}</h3>
+
+                                    <Button
+                                      onClick={() => handlePlayOtherChannel(language.value)}
+                                      variant="outline"
+                                      size="icon"
+                                      className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer h-7 w-7"
+                                      disabled={!otherChannels[language.value]?.isLive}
+                                    >
+                                      {otherChannels[language.value]?.isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                    </Button>
+                                  </div>
+                                ))
+                              ) : (
+                                <span className="text-zero-text/70 block mt-5">No Relay Channel</span>
+                              )
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  {
+                    isLive && (
+                      <div className="p-4 bg-gray-50 rounded-2xl">
+                        <span className="text-zero-text font-bold block mb-1 uppercase">Relay Channel</span>
+                        <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
+                          {
+                            otherLanguageChannel.filter((lang) => (lang.value !== language )).length > 0 ? (
+                              otherLanguageChannel.filter((lang) => (lang.value !== language)).map((language) => (
                                 <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
                                   {
                                     otherChannels[language.value]?.isLive && (
@@ -1398,40 +1407,9 @@ const Broadcast = () => {
                                   </Button>
                                 </div>
                               ))
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  {
-                    isLive && (
-                      <div className="p-4 bg-gray-50 rounded-2xl">
-                        <span className="text-zero-text font-medium block mb-1">Relay Channel</span>
-                        <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
-                          {
-                            languages.filter((lang) => lang.value !== language).map((language) => (
-                              <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
-                                {
-                                  otherChannels[language.value]?.isLive && (
-                                    <span className='h-2 w-2 rounded-full bg-blue-500 absolute top-1/2 -left-2 -translate-y-1/2 animate-pulse'></span>
-                                  )
-                                }
-                                <h3 className='flex items-center gap-2'><img src={language.flag} alt={language.value} className='w-5 h-5' />
-                                  {language.name}</h3>
-
-                                <Button
-                                  onClick={() => handlePlayOtherChannel(language.value)}
-                                  variant="outline"
-                                  size="icon"
-                                  className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer h-7 w-7"
-                                  disabled={!otherChannels[language.value]?.isLive}
-                                >
-                                  {otherChannels[language.value]?.isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                                </Button>
-                              </div>
-                            ))
+                            ) : (
+                              <span className="text-zero-text/70 block mt-5">No Relay Channel</span>
+                            )
                           }
                         </div>
                       </div>

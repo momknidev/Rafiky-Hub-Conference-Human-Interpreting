@@ -71,6 +71,16 @@ export const languages = [
 ]
 
 
+export const otherLanguageChannel = [
+    {
+        name: 'ITALIAN',
+        value: 'italian',
+        flag: '/flags/it.svg',
+    },
+]
+
+
+
 
 export const twoWayLanguages = {
     english: true,

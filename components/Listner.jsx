@@ -750,7 +750,7 @@ const Listner = () => {
   const getStreamStatus = () => {
     if (isSDKLoading) return { status: 'loading', message: 'Loading audio system...' };
     if (showBrowserWarning) return { status: 'browser-warning', message: 'Browser compatibility check...' };
-    if (connectionError) return { status: 'error', message: connectionError };
+    // if (connectionError) return { status: 'error', message: connectionError };
     if (isReconnecting) return { status: 'reconnecting', message: `Reconnecting... (${reconnectCount}/${maxReconnectAttempts})` };
     if (!isConnected) return { status: 'disconnected', message: 'Connecting to service...' };
     if (broadcasterOnline && !isLive) return { status: 'waiting', message: 'Broadcaster online, establishing audio...' };
