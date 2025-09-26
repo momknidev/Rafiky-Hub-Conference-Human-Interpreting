@@ -2,7 +2,7 @@
 @import url("https://use.typekit.net/igu6tli.css");
 @import "tailwindcss";
 @import "tw-animate-css";
-
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -83,7 +83,8 @@
     /* Custom ZERO brand colors */
     /* --color-zero-beige: #F8F0E0; */
     --color-zero-beige: whitesmoke;
-    --color-zero-green: #C2D538;
+    /* --color-zero-green: #C2D538; */
+    --color-zero-green: #533a84;
     --color-zero-status-good: #6FBF4C;
     --color-zero-warning: #D94A39;
     --color-zero-blue: #00AEEF;
@@ -175,6 +176,21 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.551 0.027 264.364);
 }
+
+
+.monstant-font p,
+.monstant-font div,
+.monstant-font h1,
+.monstant-font h2,
+.monstant-font h3,
+.monstant-font h4,
+.monstant-font h5,
+.monstant-font h6,
+.monstant-font time,
+.monstant-font input {
+  font-family: "Montserrat", sans-serif;
+}
+
 
 @layer base {
     * {

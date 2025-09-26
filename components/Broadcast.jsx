@@ -15,6 +15,7 @@ import Dialog from './Dialog';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
 import { flagsMapping, languages, twoWayLanguages } from '@/constants/flagsMapping';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
@@ -72,7 +73,7 @@ const Broadcast = () => {
   const [otherChannels, setOtherChannels] = useState({});
   const otherChannelsPlayingRef = useRef({});
   const [selectedLanguage, setSelectedLanguage] = useState(language);
-
+  const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   useEffect(() => {
     setLanguage(language);
   }, [language]);
@@ -341,6 +342,7 @@ const Broadcast = () => {
       agoraClient.on('user-unpublished', (user, mediaType) => {
         if (mediaType === 'audio' && isComponentMountedRef.current) {
           setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack: null, isLive: false, isPlaying: false } }));
+          setSelectedOtherChannel(null);
           toast.error(`${language.name} broadcast is offline`, {
             id: 'broadcast-offline',
             duration: 4000
@@ -773,7 +775,14 @@ const Broadcast = () => {
           otherChannelsPlayingRef.current[key] = false;
         }
       });
-      
+
+      //if the partner audio is playing then stop it
+      if (isPartnerAudioPlaying) {
+        remoteAudioTrack.setVolume(0);
+        await remoteAudioTrack.stop();
+        setIsPartnerAudioPlaying(false);
+      }
+
 
       otherChannels[language]?.audioTrack?.setVolume(100);
       await otherChannels[language]?.audioTrack?.play();
@@ -905,6 +914,11 @@ const Broadcast = () => {
     }
   };
 
+  const handleSelectOtherChannel = (value) => {
+    setSelectedOtherChannel(value);
+    handlePlayOtherChannel(value);
+  };
+
   const statusConfig = getConnectionStatusConfig();
   const StatusIcon = statusConfig.icon;
 
@@ -960,7 +974,7 @@ const Broadcast = () => {
   }
 
   return (
-    <>
+    <div className='monstant-font'>
       {
         waitingForResponseToHandoverRquestPopup && (
           <Dialog>
@@ -996,20 +1010,12 @@ const Broadcast = () => {
           </Dialog>
         )
       }
-      <div className="min-h-screen bg-zero-beige">
+      <div className="min-h-screen bg-zero-beige ">
         {/* Modern Header */}
-        <header className="bg-zero-navy text-white p-6 sticky top-0 z-50 backdrop-blur-xl border-b border-white/10">
+        <header className="bg-gray-200 text-white p-6 sticky top-0 z-50 backdrop-blur-xl border-b border-white/10">
           <div className="container mx-auto flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-gradient-to-br from-zero-green to-zero-blue rounded-2xl flex items-center justify-center shadow-xl">
-                <Radio className="h-7 w-7 text-zero-text" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-playfair font-bold tracking-tight">
-                  Rafiky Broadcaster
-                </h1>
-                <p className="text-sm text-white/70 font-inter font-medium">Professional Broadcasting Dashboard</p>
-              </div>
+              <img src="/images/lingo-you-logo.png" alt="logo" className="w-[12rem] object-contain" />
             </div>
 
             <div className="flex items-center gap-6">
@@ -1224,7 +1230,7 @@ const Broadcast = () => {
                     {
                       loading ? (
                         <Button
-                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
+                          className="w-full  bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
                           size="lg"
                         >
                           Loading...
@@ -1232,7 +1238,7 @@ const Broadcast = () => {
                       ) : (broadcasterCount > 1 && !isLive && !loading) ? (
                         <Button
                           onClick={sendRequestToHandover}
-                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
+                          className="w-full bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"
                           size="lg"
                         >
                           Request Handover
@@ -1241,7 +1247,7 @@ const Broadcast = () => {
                         <Button
                           onClick={handleStartStream}
                           disabled={!isMicConnected || isReconnecting}
-                          className="w-full bg-zero-green text-zero-text hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                           size="lg"
                         >
                           <Mic className="mr-4 h-10 w-10" />
@@ -1359,14 +1365,16 @@ const Broadcast = () => {
                           </Button>
 
                           {
-                            !remoteAudioTrack && (
-                              <span className="text-zero-text/70 block mt-5">No partner audio</span>
+                            !remoteAudioTrack ? (
+                              <span className="text-zero-text/70 block mt-5">No Partner is Live</span>
+                            ) : (
+                              <span className="text-zero-text/70 block mt-5">Partner is Live</span>
                             )
                           }
                         </div>
 
                         <div className="p-4 bg-gray-50 rounded-2xl">
-                          <span className="text-zero-text font-medium block mb-1">Other Channel</span>
+                          <span className="text-zero-text font-medium block mb-1">Relay Channel</span>
                           <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
                             {
                               languages.filter((lang) => lang.value !== language).map((language) => (
@@ -1400,7 +1408,7 @@ const Broadcast = () => {
                   {
                     isLive && (
                       <div className="p-4 bg-gray-50 rounded-2xl">
-                        <span className="text-zero-text font-medium block mb-1">Other Channel</span>
+                        <span className="text-zero-text font-medium block mb-1">Relay Channel</span>
                         <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
                           {
                             languages.filter((lang) => lang.value !== language).map((language) => (
@@ -1532,47 +1540,9 @@ const Broadcast = () => {
 
           </div>
 
-          {/* Broadcasting Tips */}
-          <Card className="mt-12 bg-gradient-to-br from-zero-green/5 to-zero-blue/5 backdrop-blur-xl border-0 rounded-3xl shadow-2xl">
-            <div className="p-10">
-              <h3 className="text-3xl font-playfair font-bold text-zero-text mb-10 text-center">
-                Professional Broadcasting with Enhanced Auto-Recovery
-              </h3>
-              <div className="grid md:grid-cols-4 gap-8 text-sm font-inter">
-                <div className="text-center p-8 bg-white/60 rounded-3xl">
-                  <div className="w-16 h-16 bg-zero-blue/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Mic className="h-8 w-8 text-zero-blue" />
-                  </div>
-                  <div className="font-bold text-zero-text mb-3 text-lg">Audio Excellence</div>
-                  <p className="text-zero-text/70 leading-relaxed">Professional microphone with noise suppression and automatic quality monitoring</p>
-                </div>
-                <div className="text-center p-8 bg-white/60 rounded-3xl">
-                  <div className="w-16 h-16 bg-zero-green/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Wifi className="h-8 w-8 text-zero-green" />
-                  </div>
-                  <div className="font-bold text-zero-text mb-3 text-lg">Smart Recovery</div>
-                  <p className="text-zero-text/70 leading-relaxed">Advanced reconnection system maintains broadcast stability and automatically resumes listener connections</p>
-                </div>
-                <div className="text-center p-8 bg-white/60 rounded-3xl">
-                  <div className="w-16 h-16 bg-zero-navy/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Activity className="h-8 w-8 text-zero-navy" />
-                  </div>
-                  <div className="font-bold text-zero-text mb-3 text-lg">Real-time Monitoring</div>
-                  <p className="text-zero-text/70 leading-relaxed">Comprehensive connection monitoring with network quality assessment and listener tracking</p>
-                </div>
-                <div className="text-center p-8 bg-white/60 rounded-3xl">
-                  <div className="w-16 h-16 bg-zero-warning/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Settings className="h-8 w-8 text-zero-warning" />
-                  </div>
-                  <div className="font-bold text-zero-text mb-3 text-lg">Professional Interface</div>
-                  <p className="text-zero-text/70 leading-relaxed">Streamlined controls optimized for professional interpretation with session tracking</p>
-                </div>
-              </div>
-            </div>
-          </Card>
         </main>
       </div>
-    </>
+    </div>
   );
 };
 
