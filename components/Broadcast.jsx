@@ -326,8 +326,9 @@ const Broadcast = () => {
       // Enhanced event handlers
       agoraClient.on('user-published', async (user, mediaType) => {
         console.log("user-published");
-        if (mediaType === 'audio' && isComponentMountedRef.current && channelNameRef.current !== getChannelName(language.value)) {
-          console.log("user-published 1",language.value,channelNameRef.current);
+        if (mediaType === 'audio' && isComponentMountedRef.current && (channelNameRef.current !== getChannelName(language.value) ||
+          !isLiveRef.current)) {
+          console.log("user-published 1", language.value, channelNameRef.current);
           try {
             await agoraClient.subscribe(user, mediaType);
             const audioTrack = user.audioTrack;
@@ -1385,7 +1386,7 @@ const Broadcast = () => {
                         <span className="text-zero-text font-bold block mb-1 uppercase">Relay Channel</span>
                         <div className='h-[8rem] rounded-2xl overflow-y-auto overflow-x-visible p-2 space-y-2'>
                           {
-                            otherLanguageChannel.filter((lang) => (lang.value !== language )).length > 0 ? (
+                            otherLanguageChannel.filter((lang) => (lang.value !== language)).length > 0 ? (
                               otherLanguageChannel.filter((lang) => (lang.value !== language)).map((language) => (
                                 <div key={language.value} className='flex items-center gap-2 justify-between relative px-1'>
                                   {
