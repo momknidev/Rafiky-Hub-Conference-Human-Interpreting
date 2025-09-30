@@ -9,17 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('chogan-english');
+  const [channelName, setChannelName] = useState('abhi-test-english');
   const [language, setLanguage] = useState('english');
-  const [loadAlreadyDone, setLoadAlreadyDone] = useState(false);
 
 
   useEffect(() => {
-    setChannelName(`chogan-${language}`);
+    setChannelName(`abhi-test-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `chogan-${lang}`;
+    return `abhi-test-${lang}`;
   }
 
 
@@ -27,8 +26,8 @@ export const ChannelProvider = ({ children}) => {
 
 
   const value = useMemo(
-    () => ({ channelName, setChannelName, language, setLanguage, loadAlreadyDone, setLoadAlreadyDone,getChannelName }),
-    [channelName, language, loadAlreadyDone]
+    () => ({ channelName, setChannelName, language, setLanguage, getChannelName }),
+    [channelName, language]
   )
 
   return (

@@ -309,39 +309,6 @@
     }
   }
 
-
-body {
-  background: #111111;
-}
-
-.gradient-1 {
-  background-image: url('/images/background-1.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.gradient-2 {
-  background-image: url('/images/background-2.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #396AFF, #EE3988);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-}
-
-
-.gradient-3 {
-  background: linear-gradient(to right, #396AFF, #EE3988);
-}
-
-
 /* scroll bar style */
 ::-webkit-scrollbar {
   width: 4px;
@@ -354,13 +321,6 @@ body {
   border-radius: 10px;
 }
 
-
-
-.language-title {
-  font-family: "obviously", sans-serif;
-  font-weight: 700;
-  font-style: normal;
-}
 
 * {
   -webkit-overflow-scrolling: touch

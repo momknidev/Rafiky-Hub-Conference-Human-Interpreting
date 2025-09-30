@@ -75,7 +75,7 @@ const Broadcast = () => {
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
-
+  const [airEventCount, setAirEventCount] = useState(null);
   useEffect(() => {
     channelNameRef.current = channelName;
   }, [channelName]);
@@ -236,7 +236,9 @@ const Broadcast = () => {
         setConnectionError(null);
         setNetworkQuality('good'); // Reset network quality on reconnect
       } else if (curState === 'DISCONNECTED' && isLive && connectionStatus === 'connected') {
-        handleConnectionLoss();
+        // handleConnectionLoss();
+        window.alert("Connetion Issue please go on air again");
+        handleStopStream();
       } else if (curState === 'RECONNECTING') {
         setConnectionStatus('reconnecting');
         toast.info('Connection unstable, attempting to stabilize...', {
@@ -256,7 +258,7 @@ const Broadcast = () => {
 
       if (evt.code === 'NETWORK_ERROR' && isLive && connectionStatus === 'connected') {
         setNetworkQuality('poor');
-        handleConnectionLoss();
+        // handleConnectionLoss();
       } else if (evt.code === 'MEDIA_ERROR') {
         toast.error('Microphone error detected. Please check your audio device.', {
           id: 'media-error',
@@ -426,6 +428,8 @@ const Broadcast = () => {
       if (mediaType === 'audio' && isComponentMountedRef.current) {
         setIsPartnerAudioPlaying(false);
         setRemoteAudioTrack(null);
+        
+        setTimeout(() => setAirEventCount(null),5000)
       }
     });
 
@@ -523,6 +527,7 @@ const Broadcast = () => {
   // Enhanced start broadcast with session tracking and timeout
   const handleStartStream = async () => {
     setLoading(true);
+    await sendBroadcasterEvent(10)
     try {
       if (!isMicConnected) {
         toast.info("Initializing microphone...");
@@ -561,6 +566,7 @@ const Broadcast = () => {
 
       setIsLive(true);
       setConnectionStatus('connected');
+      
       setStreamDuration(0);
       setReconnectAttempts(0); // Reset on successful start
       setConnectionError(null);
@@ -605,6 +611,7 @@ const Broadcast = () => {
       // Reset state on failure
       setIsLive(false);
       setConnectionStatus('error');
+      await sendBroadcasterEvent(0)
     } finally {
       setLoading(false);
     }
@@ -613,6 +620,7 @@ const Broadcast = () => {
   // Enhanced stop broadcast with session cleanup
   const handleStopStream = async () => {
     setLoading(true);
+    await sendBroadcasterEvent(0)
     try {
       if (localAudioTrack) {
         await client.unpublish(localAudioTrack);
@@ -622,6 +630,7 @@ const Broadcast = () => {
 
       setIsLive(false);
       setConnectionStatus('disconnected');
+      
       setStreamDuration(0);
       setReconnectAttempts(0);
       setConnectionError(null);
@@ -735,6 +744,11 @@ const Broadcast = () => {
     channel.bind('on-reject-to-handover', (data) => {
       setHandoverRequestResponse("rejected");
     });
+    
+    channel.bind('on-air-event', (data) => {
+      console.log("manan",data.data.message)
+      setAirEventCount(data.data.message)
+    });
 
     return () => {
       channel.unbind_all();
@@ -767,6 +781,14 @@ const Broadcast = () => {
     const CHANNEL_NAME = channelName;
     await pushMessage("on-reject-to-handover", {
       message: "No, I will not handover the broadcast to you.",
+    }, CHANNEL_NAME);
+  };
+
+
+  const sendBroadcasterEvent = async (event) => {
+    const CHANNEL_NAME = channelName;
+    await pushMessage("on-air-event", {
+      message: event,
     }, CHANNEL_NAME);
   };
 
@@ -803,6 +825,7 @@ const Broadcast = () => {
   };
 
   const handleSelectLanguage = (language) => {
+    setAirEventCount(null);
     setSelectedLanguage(language);
     setLanguage(language);
     if (isLiveRef.current) {
@@ -1206,7 +1229,7 @@ const Broadcast = () => {
                         >
                           <Loader2 className="mr-4 h-10 w-10 animate-spin" />
                         </Button>
-                      ) : (broadcasterCount > 1 && !isLive && !loading) ? (
+                      ) : ((broadcasterCount > 1 || airEventCount == 10) && airEventCount != 0 && !isLive && !loading) ? (
                         <Button
                           onClick={sendRequestToHandover}
                           className="w-full bg-zero-green text-white hover:bg-zero-green/90 text-2xl px-12 py-10 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-2xl shadow-xl"

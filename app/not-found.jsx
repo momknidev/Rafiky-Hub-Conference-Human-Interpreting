@@ -5,18 +5,13 @@ import { Home, ArrowLeft, AlertTriangle } from "lucide-react";
 const NotFound = () => {
 
   return (
-    <div className="min-h-screen bg-zero-beige flex flex-col">
+    <div className="min-h-screen bg-zero-beige flex flex-col monstant-font">
       {/* Header */}
-      <header className="bg-zero-navy text-white p-4">
+      <header className="bg-gray-200 text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-playfair font-bold">ZERO</h1>
-          <div className="flex gap-4">
-            <a href="/">
-              <Button variant="outline" className="text-white border-white hover:bg-zero-blue">
-                Home
-              </Button>
-            </a>
-          </div>
+          <h1 className="text-2xl font-playfair font-bold">
+            <img src="/images/main-logo.png" alt="logo" className="w-[12rem] object-contain" />
+          </h1>
         </div>
       </header>
 
@@ -49,7 +44,7 @@ const NotFound = () => {
               <a href="/">
                 <Button 
                   size="lg"
-                  className="w-full sm:w-auto bg-zero-green text-zero-text hover:bg-zero-green/90 text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
+                  className="w-full sm:w-auto bg-zero-green text-white hover:bg-zero-green/90 text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
                 >
                   <Home className="mr-3 h-5 w-5" />
                   Go Home
@@ -59,7 +54,7 @@ const NotFound = () => {
               <Button 
                 size="lg"
                 variant="outline"
-                className="w-full sm:w-auto border-zero-navy text-zero-navy hover:bg-zero-navy hover:text-white text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
+                className="w-full sm:w-auto border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
               >
                 <ArrowLeft className="mr-3 h-5 w-5" />
                 Go Back
