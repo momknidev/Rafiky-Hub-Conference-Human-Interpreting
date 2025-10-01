@@ -72,7 +72,6 @@ const Broadcast = () => {
   const { channelName, setLanguage, getChannelName } = useChannel();
   const [otherChannels, setOtherChannels] = useState({});
   const otherChannelsPlayingRef = useRef({});
-  const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
   const [airEventCount, setAirEventCount] = useState(null);
@@ -824,14 +823,7 @@ const Broadcast = () => {
     }
   };
 
-  const handleSelectLanguage = (language) => {
-    setAirEventCount(null);
-    setSelectedLanguage(language);
-    setLanguage(language);
-    if (isLiveRef.current) {
-      handleStopStream();
-    }
-  };
+
 
 
   // Utility functions
@@ -1200,26 +1192,6 @@ const Broadcast = () => {
 
                 <div className="space-y-10">
                   {/* Main Action Button */}
-                  {
-                    twoWayLanguages[language] && (
-                      <div className="bg-gray-300 grid grid-cols-2 gap-0">
-                        <Button
-                          onClick={() => handleSelectLanguage(language)}
-                          className={`px-2 py-2 cursor-pointer text-white ${selectedLanguage !== 'italian' ? 'bg-zero-green hover:bg-zero-green/90' : 'bg-gray-300 text-zero-text hover:bg-gray-300/90'}`}
-                          size="lg"
-                        >
-                          {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()}
-                        </Button>
-                        <Button
-                          onClick={() => handleSelectLanguage('italian')}
-                          className={`px-2 py-2 cursor-pointer text-white ${selectedLanguage === 'italian' ? 'bg-zero-green hover:bg-zero-green/90' : 'bg-gray-300 text-zero-text hover:bg-gray-300/90'}`}
-                          size="lg"
-                        >
-                          Italian
-                        </Button>
-                      </div>
-                    )
-                  }
                   <div className="text-center">
                     {
                       loading ? (
