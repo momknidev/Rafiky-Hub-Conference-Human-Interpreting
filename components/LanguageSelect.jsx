@@ -20,7 +20,7 @@ const LanguageSelect = () => {
         <div className='w-full grid grid-cols-2 md:grid-cols-3 gap-5'>
           {
             languages.map((language) => (
-              <Link href={`/listen/${language.value}`} key={language.value}>
+              <Link href={`/lang/${language.value}`} key={language.value}>
                 <div className='flex items-center justify-start gap-2 flex-col my-2'>
                   <img src={language.flag} alt={language.name} className='w-[130px] h-[130px] rounded-full object-cover' />
                   <p className='text-zero-text text-lg font-normal'>{language.name}</p>
