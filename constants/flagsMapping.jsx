@@ -13,62 +13,68 @@ export const flagsMapping = {
 }
 
 export const languages = [
+    // {
+    //     name: 'ITALIAN',
+    //     value: 'italian',
+    //     flag: '/flags/it.svg',
+    // },
+    // {
+    //     name: 'ENGLISH',
+    //     value: 'english',
+    //     flag: '/flags/gb-eng.svg',
+    // },
+    // {
+    //     name: 'GERMAN',
+    //     value: 'german',
+    //     flag: '/flags/de.svg',
+    // },
+    // {
+    //     name: 'FRENCH',
+    //     value: 'french',
+    //     flag: '/flags/fr.svg',
+    // },
+    // {
+    //     name: 'ROMANIAN',
+    //     value: 'romanian',
+    //     flag: '/flags/ro.svg',
+    // },
+    // {
+    //     name: 'CROATIAN',
+    //     value: 'croatian',
+    //     flag: '/flags/hr.svg',
+    // },
+    // {
+    //     name: 'PORTUGUESE',
+    //     value: 'portuguese',
+    //     flag: '/flags/pt.svg',
+    // },
+    // {
+    //     name: 'GEORGIAN',
+    //     value: 'georgian',
+    //     flag: '/flags/ge.svg',
+    // },
+    // {
+    //     name: 'ARABIC',
+    //     value: 'arabic',
+    //     flag: '/flags/sa.svg',
+    // },
+    // {
+    //     name: 'CZECH',
+    //     value: 'czech',
+    //     flag: '/flags/cz.svg',
+    // },
+    // {
+    //     name: 'HUNGARIAN',
+    //     value: 'hungarian',
+    //     flag: '/flags/hu.svg',
+    // },
     {
-        name: 'ITALIAN',
-        value: 'italian',
-        flag: '/flags/it.svg',
-    },
-    {
-        name: 'ENGLISH',
-        value: 'english',
-        flag: '/flags/gb-eng.svg',
-    },
-    {
-        name: 'GERMAN',
-        value: 'german',
-        flag: '/flags/de.svg',
-    },
-    {
-        name: 'FRENCH',
-        value: 'french',
-        flag: '/flags/fr.svg',
-    },
-    {
-        name: 'ROMANIAN',
-        value: 'romanian',
-        flag: '/flags/ro.svg',
-    },
-    {
-        name: 'CROATIAN',
-        value: 'croatian',
-        flag: '/flags/hr.svg',
-    },
-    {
-        name: 'PORTUGUESE',
-        value: 'portuguese',
-        flag: '/flags/pt.svg',
-    },
-    {
-        name: 'GEORGIAN',
-        value: 'georgian',
-        flag: '/flags/ge.svg',
-    },
-    {
-        name: 'ARABIC',
-        value: 'arabic',
-        flag: '/flags/sa.svg',
-    },
-    {
-        name: 'CZECH',
-        value: 'czech',
-        flag: '/flags/cz.svg',
-    },
-    {
-        name: 'HUNGARIAN',
-        value: 'hungarian',
-        flag: '/flags/hu.svg',
+        name: 'Serbian',
+        value: 'translation',
+        flag: '/flags/rs.svg',
     },
 ]
+
 
 
 export const otherLanguageChannel = [

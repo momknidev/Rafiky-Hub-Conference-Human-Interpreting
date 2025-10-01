@@ -901,7 +901,7 @@ const Listner = () => {
           {/* Service Title */}
           <div className="text-center mb-10 sm:mb-12">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6 flex items-center justify-center">
-              Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} Interpretation Service
+              Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} {language == "translation" ? "" : "Interpretation"} Service
             </h1>
 
 

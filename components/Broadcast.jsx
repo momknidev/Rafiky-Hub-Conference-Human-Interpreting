@@ -1191,7 +1191,7 @@ const Broadcast = () => {
                 <div className="space-y-8">
                   {
                     !isLive && (
-                      <div className='grid grid-cols-2 gap-2'>
+                      <div className='grid grid-cols-1 gap-2'>
 
                         <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between flex-col">
                           <span className="text-zero-text font-medium block text-2xl mb-4">Partner Audio</span>
