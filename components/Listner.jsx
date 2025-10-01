@@ -966,7 +966,7 @@ const Listner = () => {
 
           {/* Main Player Section */}
           <div className="max-w-md lg:max-w-4xl mx-auto">
-            <div className="lg:grid lg:grid-cols-2 lg:gap-10 space-y-8 lg:space-y-0">
+            <div className="lg:grid lg:grid-cols-1 lg:gap-10 space-y-8 lg:space-y-0">
 
               {/* Left Column - Primary Controls */}
               <div className="space-y-8">
@@ -1049,196 +1049,12 @@ const Listner = () => {
 
                   </div>
                 </Card>
-
-                {/* Audio Controls */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
-                  <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-3">
-                      <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-blue" />
-                      Audio Controls
-                    </h4>
-
-                    <div className="flex items-center gap-6">
-                      <button
-                        onClick={toggleMute}
-                        className="p-4 lg:p-5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-300 group"
-                        disabled={!isConnected || streamStatus.status === 'reconnecting' || isSDKLoading || true}
-                      >
-                        {isMuted ? (
-                          <VolumeX className="h-6 w-6 lg:h-7 lg:w-7 text-zero-warning" />
-                        ) : (
-                          <Volume className="h-6 w-6 lg:h-7 lg:w-7 text-zero-text group-hover:text-zero-blue transition-colors" />
-                        )}
-                      </button>
-
-                      <div className="flex-1 space-y-3">
-                        {/* {!isIOS ? ( */}
-                        {false ? (
-                          <>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1000"
-                              step={1}
-                              value={isMuted ? 0 : volume}
-                              onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                              disabled={isMuted || !isConnected || streamStatus.status === 'reconnecting' || isSDKLoading}
-                              className="w-full h-3 lg:h-4 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
-                            />
-                            <div className="flex justify-between text-sm lg:text-base text-zero-text/70 font-inter font-medium">
-                              <span>0%</span>
-                              <span className="font-bold text-zero-text">{isMuted ? 'Muted' : `${volume}%`}</span>
-                              <span>100%</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-zero-text/70 font-inter">
-                              Please use your device's volume buttons to adjust audio level
-                            </p>
-                            <div className="mt-2 text-lg font-bold text-zero-text">
-                              {isMuted ? 'Muted' : 'Volume: Use Device Controls'}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
               </div>
 
-              {/* Right Column - Audio Level and Status */}
-              <div className="space-y-8">
-
-                {/* Audio Level Display */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
-                  <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-8 flex items-center gap-2">
-                      <Signal className="h-5 w-5 lg:h-6 lg:w-6 text-zero-green" />
-                      Audio Level
-                    </h4>
-
-                    {isSDKLoading ? (
-                      <div className="mb-4">
-                        <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                            <p className="text-sm text-gray-500">Loading audio meter...</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <Suspense fallback={
-                        <div className="mb-4">
-                          <div className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>
-                        </div>
-                      }>
-                        <AudioLevelMeter
-                          level={audioLevel}
-                          isActive={isConnected && isLive && isPlaying && streamStatus.status !== 'reconnecting'}
-                          className="mb-4"
-                          mediaStreamTrack={remoteMediaStreamTrack}
-                        />
-                      </Suspense>
-                    )}
-
-                    <div className="text-center">
-                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${streamStatus.status === 'live' && isPlaying
-                        ? 'bg-zero-status-good/10 text-zero-status-good'
-                        : 'bg-gray-100 text-gray-600'
-                        }`}>
-                        <div className={`w-2 h-2 rounded-full ${streamStatus.status === 'live' && isPlaying
-                          ? 'bg-zero-status-good animate-pulse'
-                          : 'bg-gray-400'
-                          }`}></div>
-                        {streamStatus.status === 'live' && isPlaying ? 'Audio Active' :
-                          streamStatus.status === 'loading' ? 'Initializing' :
-                            streamStatus.status === 'reconnecting' ? 'Reconnecting' :
-                              'Audio Inactive'}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Enhanced Connection Status */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
-                  <div className="p-8">
-                    <h4 className="text-xl lg:text-2xl font-inter font-bold text-zero-text mb-6">
-                      System Status
-                    </h4>
-
-                    <div className="space-y-4 text-sm">
-
-
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Service Status</span>
-                        <span className={`font-bold ${streamStatus.status === 'live' ? 'text-green-600' :
-                          streamStatus.status === 'reconnecting' ? 'text-blue-600' :
-                            'text-orange-600'
-                          }`}>
-                          {streamStatus.status === 'live' ? 'Connected' :
-                            streamStatus.status === 'reconnecting' ? 'Reconnecting' :
-                              streamStatus.status === 'loading' ? 'Loading' :
-                                'Connecting'}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Broadcaster</span>
-                        <span className={`font-bold ${isLive ? 'text-green-600' : 'text-gray-600'}`}>
-                          {isLive ? 'Online' : 'Offline'}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Audio Stream</span>
-                        <span className={`font-bold ${isLive ? 'text-green-600' : 'text-gray-600'}`}>
-                          {isLive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-zero-text/70">Listeners</span>
-                        <span className="font-bold text-zero-text">{listenerCount}</span>
-                      </div>
-
-                      {reconnectCount > 0 && (
-                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                          <span className="font-medium text-blue-700">Reconnect Attempts</span>
-                          <span className="font-bold text-blue-800">{reconnectCount}/{maxReconnectAttempts}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Contact Support */}
-                {/* <div className="text-center">
-                  <Button 
-                    className="bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
-                    onClick={() => setShowContactModal(true)}
-                  >
-                    Contact Support
-                  </Button>
-                </div>*/}
-              </div>
+           
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        {/* <div className="w-full overflow-hidden">
-          <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <img 
-              src="/images/layout.png" 
-              alt="Festival Layout"
-              className="w-full h-auto object-cover"
-              loading="lazy"
-              width="1000"
-              height="400"
-            />
-          </div>
-        </div> */}
       </div>
 
       {
@@ -1246,70 +1062,6 @@ const Listner = () => {
           <div className='h-[15rem] w-full'></div>
         )
       }
-
-      {/* Contact Modal */}
-      {/* {showContactModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm sm:max-w-md w-full mx-2 sm:mx-4 transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-8">
-              <div className="text-center mb-4 sm:mb-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-inter font-bold text-zero-text mb-2">Contact Support</h3>
-                <p className="text-sm sm:text-base text-zero-text/70 font-inter">Get help with the Live English Interpretation Service</p>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-                <div className="text-center">
-                  <p className="text-xs sm:text-sm text-zero-text/70 font-inter mb-2">Email us at:</p>
-                  <p className="text-base sm:text-lg font-inter font-bold text-zero-text mb-3 sm:mb-4">info@rafiky.net</p>
-                  <p className="text-xs sm:text-sm text-zero-text/60 font-inter leading-relaxed">
-                    We'll respond to your inquiry as soon as possible. Click below to open your email client.
-                  </p>
-                  
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => {
-                    const subject = "Green&Blue Festival - Live English Interpretation Support";
-                    const body = `Hello,
-
-I need assistance with the Live English Interpretation Service.
-
-Browser Information:
-- Browser: ${browserInfo?.name || 'Unknown'} ${browserInfo?.version || ''}
-- WebRTC Support: ${browserInfo?.hasWebRTC ? 'Yes' : 'No'}
-- Media API Support: ${browserInfo?.hasMediaDevices ? 'Yes' : 'No'}
-- Compatible: ${browserInfo?.supported ? 'Yes' : 'No'}
-
-Issue Description:
-[Please describe your issue here]
-
-Thank you!`;
-                    
-                    window.location.href = `mailto:info@rafiky.net?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    setShowContactModal(false);
-                  }}
-                  className="w-full bg-gradient-to-r from-zero-green to-zero-blue text-white hover:from-zero-green/90 hover:to-zero-blue/90 font-inter font-semibold py-3 sm:py-4 rounded-xl transition-all duration-300 text-sm sm:text-base"
-                >
-                  Send Email with Browser Info
-                </Button>
-                <Button
-                  onClick={() => setShowContactModal(false)}
-                  className="w-full bg-gray-100 text-zero-text hover:bg-gray-200 font-inter font-semibold py-3 sm:py-4 rounded-xl transition-all duration-300 text-sm sm:text-base"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}*/}
 
       {/* Optimized CSS */}
       <style jsx>{`
