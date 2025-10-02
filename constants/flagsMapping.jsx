@@ -10,14 +10,15 @@ export const flagsMapping = {
     arabic: '/flags/sa.svg',
     czech: '/flags/cz.svg',
     hungarian: '/flags/hu.svg',
+    spanish: '/flags/es.svg',
 }
 
 export const languages = [
-    {
-        name: 'ITALIAN',
-        value: 'italian',
-        flag: '/flags/it.svg',
-    },
+    // {
+    //     name: 'ITALIAN',
+    //     value: 'italian',
+    //     flag: '/flags/it.svg',
+    // },
     {
         name: 'ENGLISH',
         value: 'english',
@@ -68,6 +69,12 @@ export const languages = [
     //     value: 'hungarian',
     //     flag: '/flags/hu.svg',
     // },
+
+    {
+        name: 'SPANISH',
+        value: 'spanish',
+        flag: '/flags/es.svg',
+    }
 ]
 
 
@@ -84,6 +91,7 @@ export const otherLanguageChannel = [
 
 export const twoWayLanguages = {
     english: true,
+    spanish: true,
     // german: true,
     // french: true,
     // georgian: true,
