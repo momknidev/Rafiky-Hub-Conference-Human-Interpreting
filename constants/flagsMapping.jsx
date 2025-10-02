@@ -14,11 +14,11 @@ export const flagsMapping = {
 }
 
 export const languages = [
-    // {
-    //     name: 'ITALIAN',
-    //     value: 'italian',
-    //     flag: '/flags/it.svg',
-    // },
+    {
+        name: 'ITALIAN',
+        value: 'italian',
+        flag: '/flags/it.svg',
+    },
     {
         name: 'ENGLISH',
         value: 'english',
@@ -70,11 +70,11 @@ export const languages = [
     //     flag: '/flags/hu.svg',
     // },
 
-    {
-        name: 'SPANISH',
-        value: 'spanish',
-        flag: '/flags/es.svg',
-    }
+    // {
+    //     name: 'SPANISH',
+    //     value: 'spanish',
+    //     flag: '/flags/es.svg',
+    // }
 ]
 
 
@@ -91,7 +91,7 @@ export const otherLanguageChannel = [
 
 export const twoWayLanguages = {
     english: true,
-    spanish: true,
+    // spanish: true,
     // german: true,
     // french: true,
     // georgian: true,
