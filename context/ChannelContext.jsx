@@ -9,16 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('abhi-test-english');
+  const [channelName, setChannelName] = useState('nexocorporation-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`abhi-test-${language}`);
+    setChannelName(`nexocorporation-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `abhi-test-${lang}`;
+    return `nexocorporation-${lang}`;
   }
 
 
