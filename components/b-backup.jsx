@@ -17,30 +17,6 @@ import { useParams } from 'next/navigation';
 import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '@/constants/flagsMapping';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// Global cleanup registry
-if (typeof window !== "undefined") {
-  window.agoraCleanupRegistry = window.agoraCleanupRegistry || {
-    clients: [],
-    audioTracks: [],
-    audioContexts: []
-  };
-}
-
-
-// Utility: check if audio track is healthy
-// Utility to check if an Agora audio track is alive
-const checkAudioTrackHealth = (track) => {
-  try {
-    if (!track) return false;
-    const mediaStreamTrack = track.getMediaStreamTrack();
-    return mediaStreamTrack && mediaStreamTrack.readyState === "live";
-  } catch (e) {
-    return false;
-  }
-};
-
-
-
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
   if (typeof window === 'undefined') return null;
@@ -57,7 +33,6 @@ const loadAgoraSDK = async () => {
 const Broadcast = () => {
   const params = useParams();
   const { language } = params;
-  const [currentPlayingChannel, setCurrentPlayingChannel] = useState(null);
   // Loading state for async components
   const [isSDKLoading, setIsSDKLoading] = useState(true);
   const [sdkError, setSDKError] = useState(null);
@@ -351,42 +326,30 @@ const Broadcast = () => {
       clients.push(agoraClient);
 
       // Enhanced event handlers
-    agoraClient.on('user-published', async (user, mediaType) => {
-  if (mediaType === 'audio' && isComponentMountedRef.current && 
-      (channelNameRef.current !== getChannelName(language.value) || !isLiveRef.current)) {
-    try {
-      await agoraClient.subscribe(user, mediaType);
-      const audioTrack = user.audioTrack;
-      
-      // Check if this channel should auto-play
-      const shouldPlay = currentPlayingChannel === language.value;
-      
-      if (shouldPlay) {
-        audioTrack.setVolume(100);
-        await audioTrack.play();
-      } else {
-        audioTrack.setVolume(0);
-      }
-      
-      setOtherChannels(prev => ({ 
-        ...prev, 
-        [language.value]: { 
-          audioTrack, 
-          isLive: true, 
-          isPlaying: shouldPlay,
-          language: language
-        } 
-      }));
+      agoraClient.on('user-published', async (user, mediaType) => {
+        console.log("user-published");
+        if (mediaType === 'audio' && isComponentMountedRef.current && (channelNameRef.current !== getChannelName(language.value) ||
+          !isLiveRef.current)) {
+          console.log("user-published 1", language.value, channelNameRef.current);
+          try {
+            await agoraClient.subscribe(user, mediaType);
+            const audioTrack = user.audioTrack;
+            const isPlaying = otherChannelsPlayingRef.current[language.value];
+            if (isPlaying) {
+              audioTrack.setVolume(100);
+              await audioTrack.play();
+            }
+            setOtherChannels(prev => ({ ...prev, [language.value]: { ...prev[language.value], audioTrack, isLive: true, isPlaying: !!isPlaying } }));
 
-      toast.success(`${language.name} broadcast is live`, {
-        id: 'broadcast-live',
-        duration: 4000
+            toast.success(`${language.name} broadcast is live`, {
+              id: 'broadcast-live',
+              duration: 4000
+            });
+          } catch (error) {
+            console.error('Error subscribing to audio:', error);
+          }
+        }
       });
-    } catch (error) {
-      console.error('Error subscribing to audio:', error);
-    }
-  }
-});
 
       agoraClient.on('user-unpublished', (user, mediaType) => {
         if (mediaType === 'audio' && isComponentMountedRef.current) {
@@ -427,28 +390,11 @@ const Broadcast = () => {
 
     })
 
-  return () => {
-  clients.forEach(async (client) => {
-    try {
-      client.removeAllListeners();
-      await client.leave();
-    } catch (err) {
-      console.warn('Cleanup error:', err);
-    }
-  });
-  
-  // Stop all playing relay tracks
-  Object.values(otherChannels).forEach(channel => {
-    if (channel?.audioTrack) {
-      try {
-        channel.audioTrack.stop();
-        channel.audioTrack.close();
-      } catch (err) {
-        console.warn('Track cleanup error:', err);
-      }
-    }
-  });
-};
+    return () => {
+      clients.forEach(client => {
+        client.removeAllListeners();
+      });
+    };
   }, [AgoraRTC, isSDKLoading]);
 
 
@@ -846,112 +792,37 @@ const Broadcast = () => {
     }, CHANNEL_NAME);
   };
 
-const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
-  try {
-    const channel = otherChannels[languageValue];
-
-    // Retry if track not yet ready
-    if (!channel?.audioTrack || !channel?.isLive) {
-      if (retryCount < 5) {
-        console.warn(`[Relay] ${languageValue} not ready, retrying... (${retryCount + 1})`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return handlePlayOtherChannel(languageValue, retryCount + 1);
-      }
-      toast.error(`${languageValue} relay not available. Please try again.`);
-      return;
-    }
-
-    // ========== NEW: Stop partner audio if playing ==========
-    if (isPartnerAudioPlaying && remoteAudioTrack) {
-      try {
-        await remoteAudioTrack.stop();
-        remoteAudioTrack.setVolume(0);
-        setIsPartnerAudioPlaying(false);
-        console.log('[Relay] Stopped partner audio');
-      } catch (err) {
-        console.warn('[Relay] Partner audio stop error:', err);
-      }
-    }
-    // ========== END NEW CODE ==========
-
-    // If already playing, stop it
-    if (currentPlayingChannel === languageValue) {
-      try {
-        channel.audioTrack.stop();
-        channel.audioTrack.setVolume(0);
-      } catch (err) {
-        console.warn(`[Relay] stop error ignored:`, err);
-      }
-      setCurrentPlayingChannel(null);
-      setOtherChannels(prev => ({
-        ...prev,
-        [languageValue]: { ...prev[languageValue], isPlaying: false }
-      }));
-      toast.info(`Stopped ${languageValue} relay`);
-      return;
-    }
-
-    // Stop any currently active relay
-    if (currentPlayingChannel) {
-      const currentChannel = otherChannels[currentPlayingChannel];
-      if (currentChannel?.audioTrack) {
-        try {
-          currentChannel.audioTrack.stop();
-          currentChannel.audioTrack.setVolume(0);
-        } catch (err) {
-          console.warn(`[Relay] stop error ignored:`, err);
-        }
-        setOtherChannels(prev => ({
-          ...prev,
-          [currentPlayingChannel]: {
-            ...prev[currentPlayingChannel],
-            isPlaying: false
-          }
-        }));
-      }
-    }
-
-    // Resume AudioContext if suspended
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      const ctx = new AudioContext();
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      // Don't close ctx immediately, keep alive for playback
-      window.agoraCleanupRegistry.audioContexts.push(ctx);
-    }
-
-    // Play the relay
-    channel.audioTrack.setVolume(100);
-    await channel.audioTrack.play();
-
-    setCurrentPlayingChannel(languageValue);
-    setOtherChannels(prev => ({
-      ...prev,
-      [languageValue]: { ...prev[languageValue], isPlaying: true }
-    }));
-
-    toast.success(`Now listening to ${languageValue} relay`);
-
-  } catch (error) {
-    if (
-      error?.name === "AbortError" ||
-      error?.message?.includes("play()") ||
-      error?.message?.includes("interrupted")
-    ) {
-      console.warn(`[Relay] non-critical error ignored:`, error);
+  const handlePlayOtherChannel = async (language) => {
+    if (otherChannels[language]?.isPlaying) {
+      otherChannels[language]?.audioTrack?.setVolume(0);
+      await otherChannels[language]?.audioTrack?.stop();
+      setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: false } }));
+      otherChannelsPlayingRef.current[language] = false;
     } else {
-      console.error(`[Relay] fatal error:`, error);
-      toast.error(`Error playing ${languageValue}. Try again.`);
+      //if the other channel is playing then stop it
+      Object.keys(otherChannels).forEach(async (key) => {
+        if (otherChannels[key]?.isPlaying) {
+          otherChannels[key]?.audioTrack?.setVolume(0);
+          await otherChannels[key]?.audioTrack?.stop();
+          setOtherChannels(prev => ({ ...prev, [key]: { ...prev[key], isPlaying: false } }));
+          otherChannelsPlayingRef.current[key] = false;
+        }
+      });
+
+      //if the partner audio is playing then stop it
+      if (isPartnerAudioPlaying) {
+        remoteAudioTrack.setVolume(0);
+        await remoteAudioTrack.stop();
+        setIsPartnerAudioPlaying(false);
+      }
+
+
+      otherChannels[language]?.audioTrack?.setVolume(100);
+      await otherChannels[language]?.audioTrack?.play();
+      setOtherChannels(prev => ({ ...prev, [language]: { ...prev[language], isPlaying: true } }));
+      otherChannelsPlayingRef.current[language] = true;
     }
-  }
-};
-
-
-
-
-
+  };
 
   const handleSelectLanguage = (language) => {
     setAirEventCount(null);
@@ -1052,60 +923,30 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
     }
   };
 
-const handlePartnerAudio = async () => {
-  if (!remoteAudioTrack) {
-    toast.error("No partner audio available");
-    return;
-  }
-
-  try {
+  const handlePartnerAudio = async () => {
+    console.log(remoteAudioTrack, "remoteAudioTrack");
     if (isPartnerAudioPlaying) {
-      await remoteAudioTrack.stop();
+      console.log("stop");
       remoteAudioTrack.setVolume(0);
+      await remoteAudioTrack.stop();
       setIsPartnerAudioPlaying(false);
-      toast.info("Partner audio stopped");
     } else {
-      // Stop relay channel first if playing
-      if (currentPlayingChannel) {
-        const channel = otherChannels[currentPlayingChannel];
-        if (channel?.audioTrack) {
-          try {
-            await channel.audioTrack.stop();
-            channel.audioTrack.setVolume(0);
-          } catch (err) {
-            console.warn('Stop error (ignored):', err);
-          }
-        }
-        setCurrentPlayingChannel(null);
-        setOtherChannels(prev => ({
-          ...prev,
-          [currentPlayingChannel]: { ...prev[currentPlayingChannel], isPlaying: false }
-        }));
-      }
-
-      // ========== NEW: Resume AudioContext for partner audio ==========
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-        if (ctx.state === "suspended") {
-          await ctx.resume();
-          console.log('[Partner Audio] AudioContext resumed');
-        }
-        window.agoraCleanupRegistry.audioContexts.push(ctx);
-      }
-      // ========== END NEW CODE ==========
-
-      // Play partner audio
+      console.log("play");
       remoteAudioTrack.setVolume(100);
       await remoteAudioTrack.play();
       setIsPartnerAudioPlaying(true);
-      toast.success("Partner audio playing");
+
+      //if the other audio playing then stop it
+      Object.keys(otherChannels).forEach(async (key) => {
+        if (otherChannels[key]?.isPlaying) {
+          otherChannels[key]?.audioTrack?.setVolume(0);
+          await otherChannels[key]?.audioTrack?.stop();
+          setOtherChannels(prev => ({ ...prev, [key]: { ...prev[key], isPlaying: false } }));
+          otherChannelsPlayingRef.current[key] = false;
+        }
+      });
     }
-  } catch (error) {
-    console.error('Partner audio error:', error);
-    toast.error("Error controlling partner audio");
-  }
-};
+  };
 
   const handleSelectOtherChannel = (value) => {
     setSelectedOtherChannel(value);
