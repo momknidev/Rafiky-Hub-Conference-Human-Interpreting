@@ -903,25 +903,23 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
   try {
     const channel = otherChannels[languageValue];
 
-    // ========== IMPROVED RETRY + HEALTH CHECK ==========
+    // Retry + Health Check
     if (
       !channel?.audioTrack ||
       !channel?.isLive ||
-      !checkAudioTrackHealth(channel.audioTrack) // NEW health check
+      !checkAudioTrackHealth(channel.audioTrack)
     ) {
       if (retryCount < 8) {
-        // Exponential backoff: 500ms → 750ms → 1.1s → 1.7s → 2.5s → 3.8s → 4s (max)
         const delay = Math.min(500 * Math.pow(1.5, retryCount), 4000);
         console.warn(
-          `[Relay] ${languageValue} not ready or unhealthy, retrying in ${delay}ms... (${retryCount + 1}/8)`
+          `[Relay] ${languageValue} not ready/unhealthy, retrying in ${delay}ms... (${retryCount + 1}/8)`
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
         return await handlePlayOtherChannel(languageValue, retryCount + 1);
       }
-      toast.error(`${languageValue} relay not available or unhealthy. Please try again.`);
+      toast.error(`${languageValue} relay not available. Please try again.`);
       return;
     }
-    // ========== END IMPROVED RETRY + HEALTH CHECK ==========
 
     // Stop partner audio if playing
     if (isPartnerAudioPlaying && remoteAudioTrack) {
@@ -972,18 +970,10 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
       }
     }
 
-    // Resume AudioContext if suspended
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      const ctx = new AudioContext();
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      // Keep context alive for playback
-      window.agoraCleanupRegistry.audioContexts.push(ctx);
-    }
+    // ✅ Use singleton AudioContext
+    await getAudioContext();
 
-    // Play the relay
+    // Play relay
     channel.audioTrack.setVolume(100);
     await channel.audioTrack.play();
 
@@ -1007,6 +997,8 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
     }
   }
 };
+
+
 
   const handleSelectLanguage = (language) => {
     setAirEventCount(null);
