@@ -9,16 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('abhi-test-english');
+  const [channelName, setChannelName] = useState('fabyline-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`abhi-test-${language}`);
+    setChannelName(`fabyline-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `abhi-test-${lang}`;
+    return `fabyline-${lang}`;
   }
 
 
