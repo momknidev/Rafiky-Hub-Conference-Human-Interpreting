@@ -1093,7 +1093,7 @@ const Broadcast = () => {
       const channelName = getChannelName(language);
       const res = await getBroadcastInfoRequest(channelName);
       const broadcasterCount = res.data?.data?.broadcasters?.length || 0;
-      alert(broadcasterCount);
+
       if(broadcasterCount === 0){
         switchBroadcastChannel(language);
       }else{
