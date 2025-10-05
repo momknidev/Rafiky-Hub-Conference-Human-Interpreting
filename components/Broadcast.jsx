@@ -35,13 +35,13 @@ const getAudioContext = async () => {
     globalAudioContext = new AudioContext();
     console.log('[AudioContext] Created new instance');
   }
-  
+
   // Resume if suspended (happens when tab goes to background)
   if (globalAudioContext.state === 'suspended') {
     await globalAudioContext.resume();
     console.log('[AudioContext] Resumed from suspended state');
   }
-  
+
   return globalAudioContext;
 };
 
@@ -119,6 +119,11 @@ const Broadcast = () => {
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
   const [airEventCount, setAirEventCount] = useState(null);
+
+
+  const [isSwitching, setIsSwitching] = useState(false);
+  const isSwitchingRef = useRef(false);
+
   useEffect(() => {
     channelNameRef.current = channelName;
   }, [channelName]);
@@ -369,88 +374,88 @@ const Broadcast = () => {
       clients.push(agoraClient);
 
       // Enhanced event handlers
-    agoraClient.on('user-published', async (user, mediaType) => {
-  if (mediaType === 'audio' && isComponentMountedRef.current && 
-      (channelNameRef.current !== getChannelName(language.value) || !isLiveRef.current)) {
-    try {
-      await agoraClient.subscribe(user, mediaType);
-      const audioTrack = user.audioTrack;
-      
-      // Check if this channel should auto-play
-      const shouldPlay = currentPlayingChannel === language.value;
-      
-      if (shouldPlay) {
-        audioTrack.setVolume(100);
-        await audioTrack.play();
-      } else {
-        audioTrack.setVolume(0);
-      }
-      
-      setOtherChannels(prev => ({ 
-        ...prev, 
-        [language.value]: { 
-          audioTrack, 
-          isLive: true, 
-          isPlaying: shouldPlay,
-          language: language
-        } 
-      }));
+      agoraClient.on('user-published', async (user, mediaType) => {
+        if (mediaType === 'audio' && isComponentMountedRef.current &&
+          (channelNameRef.current !== getChannelName(language.value) || !isLiveRef.current)) {
+          try {
+            await agoraClient.subscribe(user, mediaType);
+            const audioTrack = user.audioTrack;
 
-      toast.success(`${language.name} broadcast is live`, {
-        id: 'broadcast-live',
-        duration: 4000
+            // Check if this channel should auto-play
+            const shouldPlay = currentPlayingChannel === language.value;
+
+            if (shouldPlay) {
+              audioTrack.setVolume(100);
+              await audioTrack.play();
+            } else {
+              audioTrack.setVolume(0);
+            }
+
+            setOtherChannels(prev => ({
+              ...prev,
+              [language.value]: {
+                audioTrack,
+                isLive: true,
+                isPlaying: shouldPlay,
+                language: language
+              }
+            }));
+
+            toast.success(`${language.name} broadcast is live`, {
+              id: 'broadcast-live',
+              duration: 4000
+            });
+          } catch (error) {
+            console.error('Error subscribing to audio:', error);
+          }
+        }
       });
-    } catch (error) {
-      console.error('Error subscribing to audio:', error);
-    }
-  }
-});
 
-    agoraClient.on('user-unpublished', (user, mediaType) => {
-  if (mediaType === 'audio' && isComponentMountedRef.current) {
-    // Update state AND stop audio track in one go
-    setOtherChannels(prev => {
-      const currentChannel = prev[language.value];
-      
-      // Stop and close the audio track before removing
-      if (currentChannel?.audioTrack) {
-        try {
-          currentChannel.audioTrack.stop();
-          currentChannel.audioTrack.close();
-          console.log(`[Relay] Stopped ${language.name} track on unpublish`);
-        } catch (err) {
-          console.warn('[Relay] Track stop error:', err);
+      agoraClient.on('user-unpublished', (user, mediaType) => {
+        if (mediaType === 'audio' && isComponentMountedRef.current) {
+          // Update state AND stop audio track in one go
+          setOtherChannels(prev => {
+            const currentChannel = prev[language.value];
+
+            // Stop and close the audio track before removing
+            if (currentChannel?.audioTrack) {
+              try {
+                currentChannel.audioTrack.stop();
+                currentChannel.audioTrack.close();
+                console.log(`[Relay] Stopped ${language.name} track on unpublish`);
+              } catch (err) {
+                console.warn('[Relay] Track stop error:', err);
+              }
+            }
+
+            // Return updated state
+            return {
+              ...prev,
+              [language.value]: {
+                ...prev[language.value],
+                audioTrack: null,
+                isLive: false,
+                isPlaying: false
+              }
+            };
+          });
+
+          // Clear playing state if this was the active channel
+          setCurrentPlayingChannel(prevChannel => {
+            if (prevChannel === language.value) {
+              return null;
+            }
+            return prevChannel;
+          });
+
+          setSelectedOtherChannel(null);
+
+          toast.error(`${language.name} broadcast is offline`, {
+            id: 'broadcast-offline',
+            duration: 4000
+          });
         }
-      }
-      
-      // Return updated state
-      return {
-        ...prev,
-        [language.value]: {
-          ...prev[language.value],
-          audioTrack: null,
-          isLive: false,
-          isPlaying: false
-        }
-      };
-    });
-    
-    // Clear playing state if this was the active channel
-    setCurrentPlayingChannel(prevChannel => {
-      if (prevChannel === language.value) {
-        return null;
-      }
-      return prevChannel;
-    });
-    
-    setSelectedOtherChannel(null);
-    
-    toast.error(`${language.name} broadcast is offline`, {
-      id: 'broadcast-offline',
-      duration: 4000
-    });
-  }
-});
+      });
 
       // Enhanced channel joining with timeout
       const joinChannel = async () => {
@@ -480,28 +485,28 @@ const Broadcast = () => {
 
     })
 
-  return () => {
-  clients.forEach(async (client) => {
-    try {
-      client.removeAllListeners();
-      await client.leave();
-    } catch (err) {
-      console.warn('Cleanup error:', err);
-    }
-  });
-  
-  // Stop all playing relay tracks
-  Object.values(otherChannels).forEach(channel => {
-    if (channel?.audioTrack) {
-      try {
-        channel.audioTrack.stop();
-        channel.audioTrack.close();
-      } catch (err) {
-        console.warn('Track cleanup error:', err);
-      }
-    }
-  });
-};
+    return () => {
+      clients.forEach(async (client) => {
+        try {
+          client.removeAllListeners();
+          await client.leave();
+        } catch (err) {
+          console.warn('Cleanup error:', err);
+        }
+      });
+
+      // Stop all playing relay tracks
+      Object.values(otherChannels).forEach(channel => {
+        if (channel?.audioTrack) {
+          try {
+            channel.audioTrack.stop();
+            channel.audioTrack.close();
+          } catch (err) {
+            console.warn('Track cleanup error:', err);
+          }
+        }
+      });
+    };
   }, [AgoraRTC, isSDKLoading]);
 
 
@@ -535,8 +540,18 @@ const Broadcast = () => {
       if (mediaType === 'audio' && isComponentMountedRef.current) {
         setIsPartnerAudioPlaying(false);
         setRemoteAudioTrack(null);
-        
-        setTimeout(() => setAirEventCount(null),5000)
+
+        setTimeout(() => setAirEventCount(null), 5000)
+      }
+    });
+
+    agoraClient.on("user-joined", async (user) => {
+      if (!isComponentMountedRef.current) return;
+      if (user?.hasAudio) {
+        try {
+          const ok = await safeSubscribeAudio(agoraClient, user);
+          if (ok && user.audioTrack) setRemoteAudioTrack(user.audioTrack);
+        } catch (e) { console.warn("[user-joined] subscribe fail:", e); }
       }
     });
 
@@ -673,7 +688,7 @@ const Broadcast = () => {
 
       setIsLive(true);
       setConnectionStatus('connected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0); // Reset on successful start
       setConnectionError(null);
@@ -737,7 +752,7 @@ const Broadcast = () => {
 
       setIsLive(false);
       setConnectionStatus('disconnected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0);
       setConnectionError(null);
@@ -851,9 +866,9 @@ const Broadcast = () => {
     channel.bind('on-reject-to-handover', (data) => {
       setHandoverRequestResponse("rejected");
     });
-    
+
     channel.bind('on-air-event', (data) => {
-      console.log("manan",data.data.message)
+      console.log("manan", data.data.message)
       setAirEventCount(data.data.message)
     });
 
@@ -899,104 +914,174 @@ const Broadcast = () => {
     }, CHANNEL_NAME);
   };
 
-const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
-  try {
-    const channel = otherChannels[languageValue];
+  const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
+    try {
+      const channel = otherChannels[languageValue];
 
-    // Retry + Health Check
-    if (
-      !channel?.audioTrack ||
-      !channel?.isLive ||
-      !checkAudioTrackHealth(channel.audioTrack)
-    ) {
-      if (retryCount < 8) {
-        const delay = Math.min(500 * Math.pow(1.5, retryCount), 4000);
-        console.warn(
-          `[Relay] ${languageValue} not ready/unhealthy, retrying in ${delay}ms... (${retryCount + 1}/8)`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return await handlePlayOtherChannel(languageValue, retryCount + 1);
+      // Retry + Health Check
+      if (
+        !channel?.audioTrack ||
+        !channel?.isLive ||
+        !checkAudioTrackHealth(channel.audioTrack)
+      ) {
+        if (retryCount < 8) {
+          const delay = Math.min(500 * Math.pow(1.5, retryCount), 4000);
+          console.warn(
+            `[Relay] ${languageValue} not ready/unhealthy, retrying in ${delay}ms... (${retryCount + 1}/8)`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return await handlePlayOtherChannel(languageValue, retryCount + 1);
+        }
+        toast.error(`${languageValue} relay not available. Please try again.`);
+        return;
       }
-      toast.error(`${languageValue} relay not available. Please try again.`);
-      return;
-    }
 
-    // Stop partner audio if playing
-    if (isPartnerAudioPlaying && remoteAudioTrack) {
-      try {
-        await remoteAudioTrack.stop();
-        remoteAudioTrack.setVolume(0);
-        setIsPartnerAudioPlaying(false);
-        console.log("[Relay] Stopped partner audio");
-      } catch (err) {
-        console.warn("[Relay] Partner audio stop error:", err);
-      }
-    }
-
-    // If already playing, stop it
-    if (currentPlayingChannel === languageValue) {
-      try {
-        channel.audioTrack.stop();
-        channel.audioTrack.setVolume(0);
-      } catch (err) {
-        console.warn(`[Relay] stop error ignored:`, err);
-      }
-      setCurrentPlayingChannel(null);
-      setOtherChannels((prev) => ({
-        ...prev,
-        [languageValue]: { ...prev[languageValue], isPlaying: false },
-      }));
-      toast.info(`Stopped ${languageValue} relay`);
-      return;
-    }
-
-    // Stop any currently active relay
-    if (currentPlayingChannel) {
-      const currentChannel = otherChannels[currentPlayingChannel];
-      if (currentChannel?.audioTrack) {
+      // Stop partner audio if playing
+      if (isPartnerAudioPlaying && remoteAudioTrack) {
         try {
-          currentChannel.audioTrack.stop();
-          currentChannel.audioTrack.setVolume(0);
+          await remoteAudioTrack.stop();
+          remoteAudioTrack.setVolume(0);
+          setIsPartnerAudioPlaying(false);
+          console.log("[Relay] Stopped partner audio");
+        } catch (err) {
+          console.warn("[Relay] Partner audio stop error:", err);
+        }
+      }
+
+      // If already playing, stop it
+      if (currentPlayingChannel === languageValue) {
+        try {
+          channel.audioTrack.stop();
+          channel.audioTrack.setVolume(0);
         } catch (err) {
           console.warn(`[Relay] stop error ignored:`, err);
         }
+        setCurrentPlayingChannel(null);
         setOtherChannels((prev) => ({
           ...prev,
-          [currentPlayingChannel]: {
-            ...prev[currentPlayingChannel],
-            isPlaying: false,
-          },
+          [languageValue]: { ...prev[languageValue], isPlaying: false },
         }));
+        toast.info(`Stopped ${languageValue} relay`);
+        return;
+      }
+
+      // Stop any currently active relay
+      if (currentPlayingChannel) {
+        const currentChannel = otherChannels[currentPlayingChannel];
+        if (currentChannel?.audioTrack) {
+          try {
+            currentChannel.audioTrack.stop();
+            currentChannel.audioTrack.setVolume(0);
+          } catch (err) {
+            console.warn(`[Relay] stop error ignored:`, err);
+          }
+          setOtherChannels((prev) => ({
+            ...prev,
+            [currentPlayingChannel]: {
+              ...prev[currentPlayingChannel],
+              isPlaying: false,
+            },
+          }));
+        }
+      }
+
+      // ✅ Use singleton AudioContext
+      await getAudioContext();
+
+      // Play relay
+      channel.audioTrack.setVolume(100);
+      await channel.audioTrack.play();
+
+      setCurrentPlayingChannel(languageValue);
+      setOtherChannels((prev) => ({
+        ...prev,
+        [languageValue]: { ...prev[languageValue], isPlaying: true },
+      }));
+
+      toast.success(`Now listening to ${languageValue} relay`);
+    } catch (error) {
+      if (
+        error?.name === "AbortError" ||
+        error?.message?.includes("play()") ||
+        error?.message?.includes("interrupted")
+      ) {
+        console.warn(`[Relay] non-critical error ignored:`, error);
+      } else {
+        console.error(`[Relay] fatal error:`, error);
+        toast.error(`Error playing ${languageValue}. Try again.`);
       }
     }
+  };
 
-    // ✅ Use singleton AudioContext
-    await getAudioContext();
+  const joinAndPublish = async (appId, channel) => {
+    const { token, uid } = await generateToken("PUBLISHER", channel);
+    await client.setClientRole("host");
 
-    // Play relay
-    channel.audioTrack.setVolume(100);
-    await channel.audioTrack.play();
-
-    setCurrentPlayingChannel(languageValue);
-    setOtherChannels((prev) => ({
-      ...prev,
-      [languageValue]: { ...prev[languageValue], isPlaying: true },
-    }));
-
-    toast.success(`Now listening to ${languageValue} relay`);
-  } catch (error) {
-    if (
-      error?.name === "AbortError" ||
-      error?.message?.includes("play()") ||
-      error?.message?.includes("interrupted")
-    ) {
-      console.warn(`[Relay] non-critical error ignored:`, error);
-    } else {
-      console.error(`[Relay] fatal error:`, error);
-      toast.error(`Error playing ${languageValue}. Try again.`);
+    // ensure mic is present
+    if (!localAudioTrack || !checkAudioTrackHealth(localAudioTrack)) {
+      await initializeMicrophone();
+      if (!localAudioTrack) throw new Error("Microphone not ready");
     }
-  }
-};
+
+    await client.join(appId, channel, token, uid);
+    await client.publish(localAudioTrack);
+  };
+
+
+  const switchBroadcastChannel = async (newLanguageValue) => {
+    if (!client) return;
+    const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+    if (!APP_ID) {
+      toast.error("Missing Agora App ID");
+      return;
+    }
+
+    const newChannel = getChannelName(newLanguageValue);
+
+    if (isSwitchingRef.current) return;
+    isSwitchingRef.current = true;
+    setIsSwitching(true);
+
+    try {
+      // notify others you’re going off-air on the old channel
+      await sendBroadcasterEvent(0);
+
+      // leave old channel safely
+      try {
+        if (localAudioTrack) await client.unpublish(localAudioTrack);
+      } catch { }
+      try {
+        await client.leave();
+      } catch { }
+
+      // update context language → this will also refresh any listeners/relays
+      setLanguage(newLanguageValue);
+
+      // tiny delay to avoid racing with effects that rebuild audience clients
+      await new Promise((r) => setTimeout(r, 150));
+
+      // (re)join + publish on the new channel
+      await joinAndPublish(APP_ID, newChannel);
+
+      setConnectionStatus("connected");
+      setIsLive(true);
+      setReconnectAttempts(0);
+      streamStartTimeRef.current = Date.now();
+      setAirEventCount(10); // optional local UI hint
+      await sendBroadcasterEvent(10); // notify others you’re on-air now
+
+      toast.success(`Switched live to ${newLanguageValue}`);
+    } catch (err) {
+      console.error("switchBroadcastChannel error:", err);
+      setConnectionError(`Switch failed: ${err?.message || err}`);
+      setConnectionStatus("error");
+      setIsLive(false);
+      toast.error(`Couldn’t switch: ${err?.message || "unknown error"}`);
+    } finally {
+      isSwitchingRef.current = false;
+      setIsSwitching(false);
+    }
+  };
 
 
 
@@ -1005,7 +1090,8 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
     setSelectedLanguage(language);
     setLanguage(language);
     if (isLiveRef.current) {
-      handleStopStream();
+      // handleStopStream();
+      switchBroadcastChannel(language);
     }
   };
 
@@ -1099,60 +1185,60 @@ const handlePlayOtherChannel = async (languageValue, retryCount = 0) => {
     }
   };
 
-const handlePartnerAudio = async () => {
-  if (!remoteAudioTrack) {
-    toast.error("No partner audio available");
-    return;
-  }
-
-  try {
-    if (isPartnerAudioPlaying) {
-      await remoteAudioTrack.stop();
-      remoteAudioTrack.setVolume(0);
-      setIsPartnerAudioPlaying(false);
-      toast.info("Partner audio stopped");
-    } else {
-      // Stop relay channel first if playing
-      if (currentPlayingChannel) {
-        const channel = otherChannels[currentPlayingChannel];
-        if (channel?.audioTrack) {
-          try {
-            await channel.audioTrack.stop();
-            channel.audioTrack.setVolume(0);
-          } catch (err) {
-            console.warn('Stop error (ignored):', err);
-          }
-        }
-        setCurrentPlayingChannel(null);
-        setOtherChannels(prev => ({
-          ...prev,
-          [currentPlayingChannel]: { ...prev[currentPlayingChannel], isPlaying: false }
-        }));
-      }
-
-      // ========== NEW: Resume AudioContext for partner audio ==========
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-        if (ctx.state === "suspended") {
-          await ctx.resume();
-          console.log('[Partner Audio] AudioContext resumed');
-        }
-        window.agoraCleanupRegistry.audioContexts.push(ctx);
-      }
-      // ========== END NEW CODE ==========
-
-      // Play partner audio
-      remoteAudioTrack.setVolume(100);
-      await remoteAudioTrack.play();
-      setIsPartnerAudioPlaying(true);
-      toast.success("Partner audio playing");
+  const handlePartnerAudio = async () => {
+    if (!remoteAudioTrack) {
+      toast.error("No partner audio available");
+      return;
     }
-  } catch (error) {
-    console.error('Partner audio error:', error);
-    toast.error("Error controlling partner audio");
-  }
-};
+
+    try {
+      if (isPartnerAudioPlaying) {
+        await remoteAudioTrack.stop();
+        remoteAudioTrack.setVolume(0);
+        setIsPartnerAudioPlaying(false);
+        toast.info("Partner audio stopped");
+      } else {
+        // Stop relay channel first if playing
+        if (currentPlayingChannel) {
+          const channel = otherChannels[currentPlayingChannel];
+          if (channel?.audioTrack) {
+            try {
+              await channel.audioTrack.stop();
+              channel.audioTrack.setVolume(0);
+            } catch (err) {
+              console.warn('Stop error (ignored):', err);
+            }
+          }
+          setCurrentPlayingChannel(null);
+          setOtherChannels(prev => ({
+            ...prev,
+            [currentPlayingChannel]: { ...prev[currentPlayingChannel], isPlaying: false }
+          }));
+        }
+
+        // ========== NEW: Resume AudioContext for partner audio ==========
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          if (ctx.state === "suspended") {
+            await ctx.resume();
+            console.log('[Partner Audio] AudioContext resumed');
+          }
+          window.agoraCleanupRegistry.audioContexts.push(ctx);
+        }
+        // ========== END NEW CODE ==========
+
+        // Play partner audio
+        remoteAudioTrack.setVolume(100);
+        await remoteAudioTrack.play();
+        setIsPartnerAudioPlaying(true);
+        toast.success("Partner audio playing");
+      }
+    } catch (error) {
+      console.error('Partner audio error:', error);
+      toast.error("Error controlling partner audio");
+    }
+  };
 
   const handleSelectOtherChannel = (value) => {
     setSelectedOtherChannel(value);
@@ -1299,102 +1385,6 @@ const handlePartnerAudio = async () => {
         {/* Main Content */}
         <main className="container mx-auto p-8 max-w-7xl">
           {/* Status Cards Row */}
-          {/* <div className="grid gap-8 md:grid-cols-4 mb-12">
-        
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-red-50 rounded-2xl">
-                    <Radio className="h-8 w-8 text-red-600" />
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${isLive ? 'bg-zero-status-good animate-pulse' : 'bg-gray-400'}`} />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-3xl font-playfair font-bold text-zero-text">
-                    {isLive ? 'LIVE' : 'OFFLINE'}
-                  </div>
-                  {isLive && (
-                    <div className="text-sm text-zero-text/70 font-inter font-medium">
-                      Duration: {formatDuration(streamDuration)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className={`p-4 rounded-2xl ${isMicConnected ? 'bg-emerald-50' : 'bg-orange-50'}`}>
-                    {isMicConnected ?
-                      <Mic className="h-8 w-8 text-emerald-600" /> :
-                      <MicOff className="h-8 w-8 text-orange-600" />
-                    }
-                  </div>
-                  <Button
-                    onClick={handleReconnect}
-                    size="sm"
-                    variant="outline"
-                    className="text-xs font-medium"
-                    disabled={isMicConnected}
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-1" />
-                    {isMicConnected ? 'Connected' : 'Reconnect'}
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`text-lg font-bold font-inter ${isMicConnected ? 'text-zero-status-good' : 'text-zero-warning'}`}>
-                    {isMicConnected ? 'Connected' : 'Not Detected'}
-                  </div>
-                  <div className="text-xs text-zero-text/60 font-inter">
-                    {isMicConnected ? 'Audio input ready' : 'Check permissions'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-blue-50 rounded-2xl">
-                    <Users className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <Monitor className="h-6 w-6 text-zero-blue" />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-3xl font-playfair font-bold text-zero-text">
-                    {listenerCount}
-                  </div>
-                  <div className="text-sm text-zero-text/70 font-inter font-medium">
-                    {listenerCount === 1 ? 'listener' : 'listeners'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-emerald-50 rounded-2xl">
-                    <Wifi className="h-8 w-8 text-emerald-600" />
-                  </div>
-                  <Signal className={`h-6 w-6 ${getNetworkColor()}`} />
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`text-lg font-bold font-inter ${getNetworkColor()}`}>
-                    {networkQuality}
-                  </div>
-                  <div className="text-xs text-zero-text/60 font-inter">
-                    Network Quality
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div> */}
 
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Main Controls */}
