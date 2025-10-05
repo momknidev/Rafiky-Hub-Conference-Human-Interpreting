@@ -708,9 +708,9 @@ const Broadcast = () => {
         console.log('Session tracking not available:', err);
       }
 
-      toast.success("🎙️ Broadcast started successfully! Listeners can now connect.", {
-        duration: 4000
-      });
+      // toast.success("🎙️ Broadcast started successfully! Listeners can now connect.", {
+      //   duration: 4000
+      // });
 
     } catch (error) {
       console.error("Error starting stream:", error);
@@ -778,7 +778,7 @@ const Broadcast = () => {
         console.log('Session tracking not available:', err);
       }
 
-      toast.info("Broadcast stopped. Thank you for your interpretation!", { duration: 4000 });
+      // toast.info("Broadcast stopped. Thank you for your interpretation!", { duration: 4000 });
 
     } catch (error) {
       console.error("Error stopping stream:", error);
@@ -1085,13 +1085,21 @@ const Broadcast = () => {
 
 
 
-  const handleSelectLanguage = (language) => {
+  const handleSelectLanguage = async (language) => {
     setAirEventCount(null);
     setSelectedLanguage(language);
     setLanguage(language);
     if (isLiveRef.current) {
-      // handleStopStream();
-      switchBroadcastChannel(language);
+      const channelName = getChannelName(language);
+      const res = await getBroadcastInfoRequest(channelName);
+      const broadcasterCount = res.data?.data?.broadcasters?.length || 0;
+      alert(broadcasterCount);
+      if(broadcasterCount === 0){
+        switchBroadcastChannel(language);
+      }else{
+        toast.error("Someone is already on air in this language.");
+        handleStopStream();
+      }
     }
   };
 
