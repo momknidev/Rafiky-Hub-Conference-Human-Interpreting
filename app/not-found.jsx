@@ -39,56 +39,10 @@ const NotFound = () => {
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="/">
-                <Button 
-                  size="lg"
-                  className="w-full sm:w-auto bg-zero-green text-white hover:bg-zero-green/90 text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
-                >
-                  <Home className="mr-3 h-5 w-5" />
-                  Go Home
-                </Button>
-              </a>
-              
-              <Button 
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105"
-              >
-                <ArrowLeft className="mr-3 h-5 w-5" />
-                Go Back
-              </Button>
-            </div>
-          </Card>
-
-          {/* Additional Help */}
-          <Card className="mt-8 bg-white/60 backdrop-blur-sm p-6 shadow-lg">
-            <h3 className="text-lg font-playfair font-semibold text-zero-text mb-4">
-              Need Help?
-            </h3>
-            <div className="grid sm:grid-cols-1 gap-4 text-sm font-inter text-zero-text/70">
-              <div>
-                <strong>Looking for the listener page?</strong>
-                <p>
-                  <a href="/listen" className="text-zero-blue hover:underline">
-                    Join as a listener →
-                  </a>
-                </p>
-              </div>
-            </div>
+       
           </Card>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-zero-navy text-white p-4">
-        <div className="container mx-auto text-center">
-          <p className="font-inter text-sm">
-            © 2024 ZERO Platform. Professional Audio Streaming.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
