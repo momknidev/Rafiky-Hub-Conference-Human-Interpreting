@@ -89,7 +89,10 @@
     --color-zero-warning: #D94A39;
     --color-zero-blue: #00AEEF;
     --color-zero-navy: #1E2A38;
-    --color-zero-text: #1C1C1C;
+    /* --color-zero-text: #1C1C1C; */
+    --color-zero-text: #3c3c3c;
+
+    --color-brand: #003c75;
 
     /* Fonts */
     --font-playfair: "Playfair Display", serif;

@@ -16,6 +16,9 @@ import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
 import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '@/constants/flagsMapping';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { StartCaption, StopCaption } from '@/services/CaptionService';
+import { usePrototype } from '@/hooks/usePrototype'
+import { LanguageBotMap } from '@/constants/captionUIDs';
 
 if (typeof window !== "undefined") {
   window.agoraCleanupRegistry = window.agoraCleanupRegistry || {
@@ -27,22 +30,7 @@ if (typeof window !== "undefined") {
 
 let globalAudioContext = null;
 
-const getAudioContext = async () => {
-  // Check if we need to create a new AudioContext
-  if (!globalAudioContext || globalAudioContext.state === 'closed') {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    globalAudioContext = new AudioContext();
-    console.log('[AudioContext] Created new instance');
-  }
 
-  // Resume if suspended (happens when tab goes to background)
-  if (globalAudioContext.state === 'suspended') {
-    await globalAudioContext.resume();
-    console.log('[AudioContext] Resumed from suspended state');
-  }
-
-  return globalAudioContext;
-};
 
 const checkAudioTrackHealth = (track) => {
   try {
@@ -107,7 +95,7 @@ const Broadcast = () => {
   const streamStartTimeRef = useRef(null);
   const isLiveRef = useRef(false);
   const maxReconnectAttempts = 8;
-  const { channelName, setLanguage, getChannelName } = useChannel();
+  const { channelName, setLanguage, getChannelName,getLanguage } = useChannel();
   const [otherChannels, setOtherChannels] = useState({});
   const otherChannelsPlayingRef = useRef({});
   const [selectedLanguage, setSelectedLanguage] = useState(language);
@@ -119,7 +107,9 @@ const Broadcast = () => {
   const [isSwitching, setIsSwitching] = useState(false);
   const isSwitchingRef = useRef(false);
 
-
+  const agentSttRef = useRef(null);
+  const protypeRef = usePrototype();
+  const langRef = useRef(language);
 
   useEffect(() => {
     channelNameRef.current = channelName;
@@ -200,6 +190,10 @@ const Broadcast = () => {
         if (localAudioTrack) {
           await client.publish(localAudioTrack);
         }
+
+
+        const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);
+        agentSttRef.current = agentRes.agentId;
 
         setConnectionStatus('connected');
         setIsReconnecting(false);
@@ -345,6 +339,22 @@ const Broadcast = () => {
         setRemoteAudioTrack(null);
       }
     });
+
+    agoraClient.on("stream-message", (uid, data) => {
+      try {
+        console.log(uid, "stream-message");
+        const bytes = new Uint8Array(data);
+        const Text = protypeRef.current.lookupType("Agora.SpeechToText.Text");
+        const msg = Text.decode(bytes);
+        if (msg.dataType === "transcribe") {
+          if (msg?.words[0]?.isFinal) {
+            console.log(msg?.words[0]?.text, "stream-message");
+          }
+        }
+      } catch (e) {
+        console.log(e, "stream-message");
+      }
+    })
 
     return () => {
       isComponentMountedRef.current = false;
@@ -517,6 +527,9 @@ const Broadcast = () => {
         const { token, uid } = await generateToken("PUBLISHER", channelName);
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
+
+        const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);
+        agentSttRef.current = agentRes.agentId;
       };
 
       // Race between connection and timeout
@@ -762,7 +775,7 @@ const Broadcast = () => {
   // };
 
 
-  const joinAndPublish = async (appId, channel) => {
+  const joinAndPublish = async (appId, channel,newLanguageValue) => {
     const { token, uid } = await generateToken("PUBLISHER", channel);
     await client.setClientRole("host");
 
@@ -774,6 +787,9 @@ const Broadcast = () => {
 
     await client.join(appId, channel, token, uid);
     await client.publish(localAudioTrack);
+
+    const agentRes = await StartCaption(channel, newLanguageValue, uid);
+    agentSttRef.current = agentRes.agentId;
   };
 
 
@@ -794,6 +810,7 @@ const Broadcast = () => {
     try {
       // notify others you’re going off-air on the old channel
       await sendBroadcasterEvent(0);
+      StopCaption(agentSttRef.current);
 
       // leave old channel safely
       try {
@@ -810,7 +827,9 @@ const Broadcast = () => {
       await new Promise((r) => setTimeout(r, 150));
 
       // (re)join + publish on the new channel
-      await joinAndPublish(APP_ID, newChannel);
+      await joinAndPublish(APP_ID, newChannel,newLanguageValue);
+
+      
 
       setConnectionStatus("connected");
       setIsLive(true);

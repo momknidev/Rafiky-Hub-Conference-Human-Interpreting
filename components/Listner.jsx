@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Volume, VolumeX, ArrowLeft, Play, Pause, Radio, Signal, Headphones, Users, Wifi, Globe, AlertCircle, CheckCircle, Chrome, Monitor, XIcon } from 'lucide-react';
+import { Volume, VolumeX, ArrowLeft, Play, Pause, Radio, Signal, Headphones, Users, Wifi, Globe, AlertCircle, CheckCircle, Chrome, Monitor, XIcon, Fullscreen } from 'lucide-react';
 import { toast } from 'sonner';
 import debounce from 'lodash/debounce';
 import { getBroadcastInfoRequest } from '@/http/agoraHttp';
@@ -10,6 +10,8 @@ import { generateToken } from '@/utils/generateToken';
 import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
 import { flagsMapping } from '@/constants/flagsMapping';
+import { usePrototype } from '@/hooks/usePrototype';
+import { v4 as uuidv4 } from 'uuid';
 
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
@@ -197,7 +199,6 @@ const Listner = () => {
   const [client, setClient] = useState(null);
   const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
   const [remoteMediaStreamTrack, setRemoteMediaStreamTrack] = useState(undefined);
-
   // 🚨 RECONNECTION STATE
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
@@ -206,10 +207,13 @@ const Listner = () => {
   const [lastKnownBroadcasterState, setLastKnownBroadcasterState] = useState(null);
   const [broadcasterOnline, setBroadcasterOnline] = useState(false);
   const [subtitleOpen, setSubtitleOpen] = useState(true);
+  const [openFullScreenSubtitle, setOpenFullScreenSubtitle] = useState(false);
   const { channelName, setLanguage } = useChannel();
   const [subTitle, setSubtitles] = useState([]);
   const isPlayingRef = useRef(false);
   const subTitleContainerRef = useRef(null);
+  const protypeRef = usePrototype();
+  const subTitleRef = useRef(null);
 
 
   //auto scroll to bottom
@@ -538,6 +542,25 @@ const Listner = () => {
         handleDisconnection();
       }
     });
+
+    agoraClient.on("stream-message", (uid, data) => {
+      try {
+
+
+        const bytes = new Uint8Array(data);
+        const Text = protypeRef.current.lookupType("Agora.SpeechToText.Text");
+        const msg = Text.decode(bytes);
+        if(msg.dataType === "transcribe"){
+          if(msg?.words[0]?.isFinal){
+            subTitleRef.current = uuidv4();
+            setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: msg?.words[0]?.text , isFinal: msg?.words[0]?.isFinal }]);
+          }
+        }
+
+      } catch (e) {
+        console.log(e, "stream-message");
+      }
+    })
 
     // Enhanced channel joining with timeout
     const joinChannel = async () => {
@@ -880,8 +903,35 @@ const Listner = () => {
   //   );
   // }
 
+
+
   return (
     <>
+
+      {
+        (subtitleOpen && subTitle.length > 0) && (
+          <div className={`fixed bottom-4 border border-gray-200 left-4 right-4 bg-white p-4 shadow-lg rounded-md z-50 h-[15rem] overflow-y-auto space-y-4   ${openFullScreenSubtitle ? '!top-0 !left-0 !w-[100vw] !h-[100vh] !right-0 !bottom-0 z-50' : 'max-w-3xl mx-auto'}`} ref={subTitleContainerRef}>
+            <Button size="icon" variant="ghost" onClick={() => setSubtitleOpen(false)} className="absolute top-2 right-2 cursor-pointer text-neutral-900">
+              <XIcon className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setOpenFullScreenSubtitle(prev => !prev)} className="absolute top-2 right-10 cursor-pointer text-neutral-900">
+              <Fullscreen className="w-4 h-4" />
+            </Button>
+            {subTitle.map(item => (
+              <>
+                {
+                  item.text &&
+                  <div key={item.uuid} className="flex items-center gap-3">
+                    <img src={flagsMapping[language]} alt={language} className="w-6 h-6" />
+                    <h2 className="text-sm text-zero-text/70 font-inter font-light">{item.text}</h2>
+                  </div>
+                }
+              </>
+            ))}
+          </div>
+        )
+      }
+
       <div className="min-h-screen bg-zero-beige">
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
@@ -974,7 +1024,7 @@ const Listner = () => {
                 {/* Primary Control Card */}
                 <Card className="bg-white/90 border-0 rounded-2xl">
                   <div className="p-8 text-center">
-                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
+                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-brand to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
                       {isPlaying ? (
                         <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
                       ) : (
@@ -1001,7 +1051,7 @@ const Listner = () => {
                           onClick={handlePlayPauseStream}
                           className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${isPlaying
                             ? 'bg-zero-warning text-white hover:bg-zero-warning/90'
-                            : 'bg-zero-green text-white hover:bg-zero-green/90'
+                            : 'bg-brand text-white hover:bg-brand/90'
                             }`}
                           size="lg"
                           disabled={streamStatus.status === 'reconnecting'}
@@ -1051,7 +1101,7 @@ const Listner = () => {
                 </Card>
               </div>
 
-           
+
             </div>
           </div>
         </main>

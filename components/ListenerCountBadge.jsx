@@ -3,7 +3,7 @@ import React from "react"
 const ListenerCountBadge = ({ count, className = "" }) => {
   return (
     <div
-      className={`bg-zero-green text-white px-3 py-2 rounded-full font-inter font-medium text-sm ${className}`}
+      className={`bg-brand text-white px-3 py-2 rounded-full font-inter font-medium text-sm ${className}`}
     >
       <span className="mr-1">👥</span>
       {

@@ -21,12 +21,16 @@ export const ChannelProvider = ({ children}) => {
     return `nexo-${lang}`;
   }
 
+  const getLanguage = () => {
+    return language;
+  }
+
 
 
 
 
   const value = useMemo(
-    () => ({ channelName, setChannelName, language, setLanguage, getChannelName }),
+    () => ({ channelName, setChannelName, language, setLanguage, getChannelName, getLanguage }),
     [channelName, language]
   )
 
