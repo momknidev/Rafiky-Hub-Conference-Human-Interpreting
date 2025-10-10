@@ -17,6 +17,43 @@ import { useParams } from 'next/navigation';
 import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '@/constants/flagsMapping';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+if (typeof window !== "undefined") {
+  window.agoraCleanupRegistry = window.agoraCleanupRegistry || {
+    clients: [],
+    audioTracks: [],
+    audioContexts: []
+  };
+}
+
+let globalAudioContext = null;
+
+const getAudioContext = async () => {
+  // Check if we need to create a new AudioContext
+  if (!globalAudioContext || globalAudioContext.state === 'closed') {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    globalAudioContext = new AudioContext();
+    console.log('[AudioContext] Created new instance');
+  }
+
+  // Resume if suspended (happens when tab goes to background)
+  if (globalAudioContext.state === 'suspended') {
+    await globalAudioContext.resume();
+    console.log('[AudioContext] Resumed from suspended state');
+  }
+
+  return globalAudioContext;
+};
+
+const checkAudioTrackHealth = (track) => {
+  try {
+    if (!track) return false;
+    const mediaStreamTrack = track.getMediaStreamTrack();
+    return mediaStreamTrack && mediaStreamTrack.readyState === "live";
+  } catch (e) {
+    return false;
+  }
+};
+
 // Async Agora SDK loader
 const loadAgoraSDK = async () => {
   if (typeof window === 'undefined') return null;
@@ -34,6 +71,7 @@ const Broadcast = () => {
   const params = useParams();
   const { language } = params;
   // Loading state for async components
+  const [currentPlayingChannel, setCurrentPlayingChannel] = useState(null);
   const [isSDKLoading, setIsSDKLoading] = useState(true);
   const [sdkError, setSDKError] = useState(null);
   const [AgoraRTC, setAgoraRTC] = useState(null);
@@ -76,6 +114,13 @@ const Broadcast = () => {
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
   const [airEventCount, setAirEventCount] = useState(null);
+
+
+  const [isSwitching, setIsSwitching] = useState(false);
+  const isSwitchingRef = useRef(false);
+
+
+
   useEffect(() => {
     channelNameRef.current = channelName;
   }, [channelName]);
@@ -341,8 +386,8 @@ const Broadcast = () => {
       if (mediaType === 'audio' && isComponentMountedRef.current) {
         setIsPartnerAudioPlaying(false);
         setRemoteAudioTrack(null);
-        
-        setTimeout(() => setAirEventCount(null),5000)
+
+        setTimeout(() => setAirEventCount(null), 5000)
       }
     });
 
@@ -479,7 +524,7 @@ const Broadcast = () => {
 
       setIsLive(true);
       setConnectionStatus('connected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0); // Reset on successful start
       setConnectionError(null);
@@ -543,7 +588,7 @@ const Broadcast = () => {
 
       setIsLive(false);
       setConnectionStatus('disconnected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0);
       setConnectionError(null);
@@ -657,9 +702,9 @@ const Broadcast = () => {
     channel.bind('on-reject-to-handover', (data) => {
       setHandoverRequestResponse("rejected");
     });
-    
+
     channel.bind('on-air-event', (data) => {
-      console.log("manan",data.data.message)
+      console.log("manan", data.data.message)
       setAirEventCount(data.data.message)
     });
 
@@ -707,14 +752,106 @@ const Broadcast = () => {
 
 
 
-  const handleSelectLanguage = (language) => {
+  // const handleSelectLanguage = (language) => {
+  //   setAirEventCount(null);
+  //   setSelectedLanguage(language);
+  //   setLanguage(language);
+  //   if (isLiveRef.current) {
+  //     handleStopStream();
+  //   }
+  // };
+
+
+  const joinAndPublish = async (appId, channel) => {
+    const { token, uid } = await generateToken("PUBLISHER", channel);
+    await client.setClientRole("host");
+
+    // ensure mic is present
+    if (!localAudioTrack || !checkAudioTrackHealth(localAudioTrack)) {
+      await initializeMicrophone();
+      if (!localAudioTrack) throw new Error("Microphone not ready");
+    }
+
+    await client.join(appId, channel, token, uid);
+    await client.publish(localAudioTrack);
+  };
+
+
+  const switchBroadcastChannel = async (newLanguageValue) => {
+    if (!client) return;
+    const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
+    if (!APP_ID) {
+      toast.error("Missing Agora App ID");
+      return;
+    }
+
+    const newChannel = getChannelName(newLanguageValue);
+
+    if (isSwitchingRef.current) return;
+    isSwitchingRef.current = true;
+    setIsSwitching(true);
+
+    try {
+      // notify others you’re going off-air on the old channel
+      await sendBroadcasterEvent(0);
+
+      // leave old channel safely
+      try {
+        if (localAudioTrack) await client.unpublish(localAudioTrack);
+      } catch { }
+      try {
+        await client.leave();
+      } catch { }
+
+      // update context language → this will also refresh any listeners/relays
+      setLanguage(newLanguageValue);
+
+      // tiny delay to avoid racing with effects that rebuild audience clients
+      await new Promise((r) => setTimeout(r, 150));
+
+      // (re)join + publish on the new channel
+      await joinAndPublish(APP_ID, newChannel);
+
+      setConnectionStatus("connected");
+      setIsLive(true);
+      setReconnectAttempts(0);
+      streamStartTimeRef.current = Date.now();
+      setAirEventCount(10); // optional local UI hint
+      await sendBroadcasterEvent(10); // notify others you’re on-air now
+
+      toast.success(`Switched live to ${newLanguageValue}`);
+    } catch (err) {
+      console.error("switchBroadcastChannel error:", err);
+      setConnectionError(`Switch failed: ${err?.message || err}`);
+      setConnectionStatus("error");
+      setIsLive(false);
+      toast.error(`Couldn’t switch: ${err?.message || "unknown error"}`);
+    } finally {
+      isSwitchingRef.current = false;
+      setIsSwitching(false);
+    }
+  };
+
+
+
+  const handleSelectLanguage = async (language) => {
     setAirEventCount(null);
     setSelectedLanguage(language);
     setLanguage(language);
     if (isLiveRef.current) {
-      handleStopStream();
+      const channelName = getChannelName(language);
+      const res = await getBroadcastInfoRequest(channelName);
+      const broadcasterCount = res.data?.data?.broadcasters?.length || 0;
+
+      if (broadcasterCount === 0) {
+        switchBroadcastChannel(language);
+      } else {
+        toast.error("Someone is already on air in this language.");
+        handleStopStream();
+      }
     }
   };
+
 
 
   // Utility functions
@@ -806,22 +943,76 @@ const Broadcast = () => {
     }
   };
 
+  // const handlePartnerAudio = async () => {
+  //   console.log(remoteAudioTrack, "remoteAudioTrack");
+  //   if (isPartnerAudioPlaying) {
+  //     console.log("stop");
+  //     remoteAudioTrack.setVolume(0);
+  //     await remoteAudioTrack.stop();
+  //     setIsPartnerAudioPlaying(false);
+  //   } else {
+  //     console.log("play");
+  //     remoteAudioTrack.setVolume(100);
+  //     await remoteAudioTrack.play();
+  //     setIsPartnerAudioPlaying(true);
+  //   }
+  // };
+
+
   const handlePartnerAudio = async () => {
-    console.log(remoteAudioTrack, "remoteAudioTrack");
-    if (isPartnerAudioPlaying) {
-      console.log("stop");
-      remoteAudioTrack.setVolume(0);
-      await remoteAudioTrack.stop();
-      setIsPartnerAudioPlaying(false);
-    } else {
-      console.log("play");
-      remoteAudioTrack.setVolume(100);
-      await remoteAudioTrack.play();
-      setIsPartnerAudioPlaying(true);
+    if (!remoteAudioTrack) {
+      toast.error("No partner audio available");
+      return;
+    }
+
+    try {
+      if (isPartnerAudioPlaying) {
+        await remoteAudioTrack.stop();
+        remoteAudioTrack.setVolume(0);
+        setIsPartnerAudioPlaying(false);
+        toast.info("Partner audio stopped");
+      } else {
+        // Stop relay channel first if playing
+        if (currentPlayingChannel) {
+          const channel = otherChannels[currentPlayingChannel];
+          if (channel?.audioTrack) {
+            try {
+              await channel.audioTrack.stop();
+              channel.audioTrack.setVolume(0);
+            } catch (err) {
+              console.warn('Stop error (ignored):', err);
+            }
+          }
+          setCurrentPlayingChannel(null);
+          setOtherChannels(prev => ({
+            ...prev,
+            [currentPlayingChannel]: { ...prev[currentPlayingChannel], isPlaying: false }
+          }));
+        }
+
+        // ========== NEW: Resume AudioContext for partner audio ==========
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          if (ctx.state === "suspended") {
+            await ctx.resume();
+            console.log('[Partner Audio] AudioContext resumed');
+          }
+          window.agoraCleanupRegistry.audioContexts.push(ctx);
+        }
+        // ========== END NEW CODE ==========
+
+        // Play partner audio
+        remoteAudioTrack.setVolume(100);
+        await remoteAudioTrack.play();
+        setIsPartnerAudioPlaying(true);
+        toast.success("Partner audio playing");
+      }
+    } catch (error) {
+      console.error('Partner audio error:', error);
+      toast.error("Error controlling partner audio");
     }
   };
-
-
 
   const statusConfig = getConnectionStatusConfig();
   const StatusIcon = statusConfig.icon;
