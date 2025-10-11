@@ -214,6 +214,8 @@ const Listner = () => {
   const subTitleContainerRef = useRef(null);
   const protypeRef = usePrototype();
   const subTitleRef = useRef(null);
+  const [subtitleText, setSubtitleText] = useState('');
+  const subtitleTextRef = useRef(null);
 
 
   //auto scroll to bottom
@@ -550,10 +552,15 @@ const Listner = () => {
         const bytes = new Uint8Array(data);
         const Text = protypeRef.current.lookupType("Agora.SpeechToText.Text");
         const msg = Text.decode(bytes);
-        if(msg.dataType === "transcribe"){
-          if(msg?.words[0]?.isFinal){
+        if (msg.dataType === "transcribe") {
+          if (msg?.words[0]?.isFinal) {
             subTitleRef.current = uuidv4();
-            setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: msg?.words[0]?.text , isFinal: msg?.words[0]?.isFinal }]);
+            setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: msg?.words[0]?.text, isFinal: msg?.words[0]?.isFinal }]);
+            subtitleTextRef.current?.classList.remove("visible");
+            setTimeout(() => {
+              setSubtitleText(msg?.words[0]?.text);
+              subtitleTextRef.current?.classList.add("visible");
+            }, 200);
           }
         }
 
@@ -909,7 +916,7 @@ const Listner = () => {
     <>
 
       {
-        (subtitleOpen && subTitle.length > 0) && (
+        (subtitleOpen && subTitle.length > 0 && !openFullScreenSubtitle) && (
           <div className={`fixed bottom-4 border border-gray-200 left-4 right-4 bg-white p-4 shadow-lg rounded-md z-50 h-[15rem] overflow-y-auto space-y-4   ${openFullScreenSubtitle ? '!top-0 !left-0 !w-[100vw] !h-[100vh] !right-0 !bottom-0 z-50' : 'max-w-3xl mx-auto'}`} ref={subTitleContainerRef}>
             <Button size="icon" variant="ghost" onClick={() => setSubtitleOpen(false)} className="absolute top-2 right-2 cursor-pointer text-neutral-900">
               <XIcon className="w-4 h-4" />
@@ -931,6 +938,26 @@ const Listner = () => {
           </div>
         )
       }
+
+      {
+        (subtitleOpen && subTitle.length > 0 && openFullScreenSubtitle) && (
+          <div className="fixed inset-0 z-50 bg-black h-[100vh] w-[100vw]">
+            <div className='flex items-center justify-end gap-2 p-4 bg-black/20'>
+              <Button size="icon" variant="ghost" onClick={() => setSubtitleOpen(false)} className=" cursor-pointer text-white">
+                <XIcon className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => setOpenFullScreenSubtitle(prev => !prev)} className="cursor-pointer text-white">
+                <Fullscreen className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="w-full h-[25vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center">
+              <h1 className='visible' id="subtitle-text" ref={subtitleTextRef}>{subtitleText}</h1>
+            </div>
+          </div>
+        )
+      }
+
+
 
       <div className="min-h-screen bg-zero-beige">
         {/* Festival Header */}
