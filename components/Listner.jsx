@@ -886,14 +886,22 @@ const Listner = () => {
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <img
+            {/* <img
               src="/images/main-logo.png"
               alt="Novamarine"
               className="object-contain mx-auto mt-10"
               loading="eager"
               width="200"
               height="200"
-            />
+            /> */}
+
+            <div className='w-full flex items-center justify-center flex-row gap-4 mt-10'>
+              {
+                Array.from({ length: 5 }).map((_, index) => (
+                  <img key={index} src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[5rem] md:w-[7rem] object-contain aspect-square' />
+                ))
+              }
+            </div>
           </div>
         </div>
 
@@ -974,7 +982,7 @@ const Listner = () => {
                 {/* Primary Control Card */}
                 <Card className="bg-white/90 border-0 rounded-2xl">
                   <div className="p-8 text-center">
-                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
+                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-brand to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
                       {isPlaying ? (
                         <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
                       ) : (
@@ -1001,7 +1009,7 @@ const Listner = () => {
                           onClick={handlePlayPauseStream}
                           className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${isPlaying
                             ? 'bg-zero-warning text-white hover:bg-zero-warning/90'
-                            : 'bg-zero-green text-white hover:bg-zero-green/90'
+                            : 'bg-brand text-white hover:bg-brand/90'
                             }`}
                           size="lg"
                           disabled={streamStatus.status === 'reconnecting'}
@@ -1051,7 +1059,7 @@ const Listner = () => {
                 </Card>
               </div>
 
-           
+
             </div>
           </div>
         </main>
