@@ -19,61 +19,61 @@ export const languages = [
         value: 'italian',
         flag: '/flags/it.svg',
     },
-    {
-        name: 'SPANISH',
-        value: 'spanish',
-        flag: '/flags/re.svg',
-    },
+    // {
+    //     name: 'SPANISH',
+    //     value: 'spanish',
+    //     flag: '/flags/re.svg',
+    // },
     {
         name: 'ENGLISH',
         value: 'english',
         flag: '/flags/gb-eng.svg',
     },
-    {
-        name: 'GERMAN',
-        value: 'german',
-        flag: '/flags/de.svg',
-    },
+    // {
+    //     name: 'GERMAN',
+    //     value: 'german',
+    //     flag: '/flags/de.svg',
+    // },
     {
         name: 'FRENCH',
         value: 'french',
         flag: '/flags/fr.svg',
     },
-    {
-        name: 'ROMANIAN',
-        value: 'romanian',
-        flag: '/flags/ro.svg',
-    },
-    {
-        name: 'CROATIAN',
-        value: 'croatian',
-        flag: '/flags/hr.svg',
-    },
-    {
-        name: 'PORTUGUESE',
-        value: 'portuguese',
-        flag: '/flags/pt.svg',
-    },
-    {
-        name: 'GEORGIAN',
-        value: 'georgian',
-        flag: '/flags/ge.svg',
-    },
-    {
-        name: 'ARABIC',
-        value: 'arabic',
-        flag: '/flags/sa.svg',
-    },
-    {
-        name: 'CZECH',
-        value: 'czech',
-        flag: '/flags/cz.svg',
-    },
-    {
-        name: 'HUNGARIAN',
-        value: 'hungarian',
-        flag: '/flags/hu.svg',
-    },
+    // {
+    //     name: 'ROMANIAN',
+    //     value: 'romanian',
+    //     flag: '/flags/ro.svg',
+    // },
+    // {
+    //     name: 'CROATIAN',
+    //     value: 'croatian',
+    //     flag: '/flags/hr.svg',
+    // },
+    // {
+    //     name: 'PORTUGUESE',
+    //     value: 'portuguese',
+    //     flag: '/flags/pt.svg',
+    // },
+    // {
+    //     name: 'GEORGIAN',
+    //     value: 'georgian',
+    //     flag: '/flags/ge.svg',
+    // },
+    // {
+    //     name: 'ARABIC',
+    //     value: 'arabic',
+    //     flag: '/flags/sa.svg',
+    // },
+    // {
+    //     name: 'CZECH',
+    //     value: 'czech',
+    //     flag: '/flags/cz.svg',
+    // },
+    // {
+    //     name: 'HUNGARIAN',
+    //     value: 'hungarian',
+    //     flag: '/flags/hu.svg',
+    // },
 
 ]
 
@@ -84,37 +84,37 @@ export const otherLanguageChannel = [
         value: 'italian',
         flag: '/flags/it.svg',
     },
-    {
-        name: 'SPANISH',
-        value: 'spanish',
-        flag: '/flags/re.svg',
-    },
-    {
-        name: 'ENGLISH',
-        value: 'english',
-        flag: '/flags/gb-eng.svg',
-    },
-    {
-        name: 'GERMAN',
-        value: 'german',
-        flag: '/flags/de.svg',
-    },
-    {
-        name: 'FRENCH',
-        value: 'french',
-        flag: '/flags/fr.svg',
-    },
-    {
-        name: 'ROMANIAN',
-        value: 'romanian',
-        flag: '/flags/ro.svg',
-    },
+    // {
+    //     name: 'SPANISH',
+    //     value: 'spanish',
+    //     flag: '/flags/re.svg',
+    // },
+    // {
+    //     name: 'ENGLISH',
+    //     value: 'english',
+    //     flag: '/flags/gb-eng.svg',
+    // },
+    // {
+    //     name: 'GERMAN',
+    //     value: 'german',
+    //     flag: '/flags/de.svg',
+    // },
+    // {
+    //     name: 'FRENCH',
+    //     value: 'french',
+    //     flag: '/flags/fr.svg',
+    // },
+    // {
+    //     name: 'ROMANIAN',
+    //     value: 'romanian',
+    //     flag: '/flags/ro.svg',
+    // },
     
-    {
-        name: 'ARABIC',
-        value: 'arabic',
-        flag: '/flags/sa.svg',
-    }
+    // {
+    //     name: 'ARABIC',
+    //     value: 'arabic',
+    //     flag: '/flags/sa.svg',
+    // }
 ]
 
 
@@ -122,8 +122,8 @@ export const otherLanguageChannel = [
 
 export const twoWayLanguages = {
     english: true,
-    spanish: true,
-    //french: true,
+    // spanish: true,
+    french: true,
     //georgian: true,
 }
 
