@@ -950,7 +950,7 @@ const Listner = () => {
                 <Fullscreen className="w-4 h-4" />
               </Button>
             </div>
-            <div className="w-full h-[25vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center">
+            <div className="w-full h-[50vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center">
               <h1 className='visible' id="subtitle-text" ref={subtitleTextRef}>{subtitleText}</h1>
             </div>
           </div>
