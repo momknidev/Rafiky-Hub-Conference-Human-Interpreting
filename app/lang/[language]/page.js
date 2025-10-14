@@ -57,18 +57,15 @@ export default function ListenerPage() {
     }
   }, []);
 
+  
   if (loadError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
         <div className="bg-red-50 border border-red-200 p-6 rounded-2xl max-w-sm">
           <AlertTriangle className="w-10 h-10 text-red-600 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-red-700 mb-2">
-            Your browser is not supported
+            Your browser is not supported WebRTC
           </h2>
-          <p className="text-sm text-red-600 mb-6">
-            This service requires WebRTC and a modern browser.  
-            Please open this page in the latest version of <strong>Chrome</strong>, <strong>Firefox</strong>, or <strong>Edge</strong>.
-          </p>
           <Button
             onClick={() => window.location.reload()}
             className="w-full bg-blue-600 text-white hover:bg-blue-700"
