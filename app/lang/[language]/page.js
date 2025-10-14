@@ -63,9 +63,22 @@ export default function ListenerPage() {
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
         <div className="bg-red-50 border border-red-200 p-6 rounded-2xl max-w-sm">
           <AlertTriangle className="w-10 h-10 text-red-600 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-red-700 mb-2">
-            Your browser is not supported WebRTC
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            ⚠️ Unable to join the event
           </h2>
+          <div>
+            <p className="text-sm text-gray-800 mb-6">
+              Your browser or connection may not fully support the platform.
+              <br />
+              Try this:
+            </p>
+            <ul className="text-sm text-gray-800 mb-6">
+              <li>Refresh the page.</li>
+              <li>If it still fails, open the link in your system browser (Android: Chrome; iPhone/iPad: Safari).</li>
+              <li>Make sure you have a stable connection (Wi-Fi or 4G/5G).</li>
+              <li>If the issue persists, please contact event support.</li>
+            </ul>
+          </div>
           <Button
             onClick={() => window.location.reload()}
             className="w-full bg-blue-600 text-white hover:bg-blue-700"
