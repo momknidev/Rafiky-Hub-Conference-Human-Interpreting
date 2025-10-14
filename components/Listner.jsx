@@ -886,12 +886,8 @@ const Listner = () => {
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <div className='w-full flex items-center justify-center flex-row gap-4 bg-brand'>
-              {
-                Array.from({ length: 3 }).map((_, index) => (
-                  <img key={index} src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[8rem] md:w-[10rem] object-contain aspect-square' />
-                ))
-              }
+            <div className='w-full flex items-center justify-center flex-row gap-4 bg-brand py-4'>
+              <img src={`/logo/logo.png`} alt="Livello Logo" className='w-[15rem] md:w-[20rem] object-contain' />
             </div>
           </div>
         </div>
@@ -1050,7 +1046,7 @@ const Listner = () => {
                 </Card>
               </div>
 
-           
+
             </div>
           </div>
         </main>

@@ -9,14 +9,9 @@ const LanguageSelect = () => {
 
   return (
     <div className='h-screen w-screen flex flex-col items-center justify-start py-10 px-8 pt-20 overflow-y-auto'>
-      <div className='w-full flex items-center justify-center flex-row gap-4 bg-brand'>
-        {
-          Array.from({ length: 3 }).map((_, index) => (
-            <img key={index}  src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[8rem] md:w-[10rem] object-contain aspect-square' />
-          ))
-        }
+      <div className='w-full flex items-center justify-center flex-row gap-4 bg-brand py-4'>
+        <img src={`/logo/logo.png`} alt="Livello Logo" className='w-[15rem] md:w-[20rem] object-contain' />
       </div>
-
       <div className='w-full flex flex-col items-center justify-center mt-10'>
         <h1 className='text-zero-text text-2xl md:text-4xl uppercase language-title text-center'>Choose your language</h1>
         <p className='text-zero-text/80 mt-2 text-lg font-light text-center'>Translate the event in your language</p>
