@@ -199,7 +199,10 @@ const Broadcast = () => {
 
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => { }); // Ignore errors
-        await client.setClientRole('host');
+        await client.setClientRole('host',{
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         await client.join(APP_ID, CHANNEL_NAME, toast, uid);
         console.info(token, uid)
         if (localAudioTrack) {
@@ -590,6 +593,51 @@ const Broadcast = () => {
       agoraClient.leave().catch(console.error);
     };
   }, [AgoraRTC, isSDKLoading]);
+  
+
+  const createLimitedCustomTrack = async (micTrack) => {
+    const micStreamTrack = micTrack.getMediaStreamTrack?.();
+    if (!micStreamTrack) return null;
+  
+    // ✅ Prefer a shared/singleton AudioContext if you have one
+    const ctx = new (window.AudioContext || (window).webkitAudioContext)({ sampleRate: 48000 });
+    if (ctx.state === 'suspended') await ctx.resume();
+  
+    // Source from the raw mic track
+    const src = ctx.createMediaStreamSource(new MediaStream([micStreamTrack]));
+  
+    // 1) Gentle compressor (tames dynamics)
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10;   // dB (your values)
+    comp.knee.value = 10;         // dB
+    comp.ratio.value = 3;         // :1 mild compression
+    comp.attack.value = 0.003;    // s
+    comp.release.value = 0.25;    // s
+  
+    // 2) 🔒 Limiter AFTER compressor (brick-wall safety)
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1.0; // dB ceiling
+    limiter.knee.value = 0.0;
+    limiter.ratio.value = 20.0;     // high ratio ≈ limiter behavior
+    limiter.attack.value = 0.001;   // fast
+    limiter.release.value = 0.05;   // fast
+  
+    // Destination for publishing
+    const dest = ctx.createMediaStreamDestination();
+  
+    // Wire: mic → comp → limiter → dest
+    src.connect(comp);
+    comp.connect(limiter);
+    limiter.connect(dest);
+  
+    // Take processed track and hand it to Agora
+    const processed = dest.stream.getAudioTracks()[0];
+  
+    // (Optional) force mono channel count metadata for downstream consistency
+    try { (processed).applyConstraints?.({ channelCount: 1 }); } catch {}
+  
+    return AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: processed });
+  };
 
   // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
@@ -610,13 +658,17 @@ const Broadcast = () => {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
         encoderConfig: {
           sampleRate: 48000,
-          stereo: true,
-          bitrate: 128,
+          stereo: false,
+          bitrate: 96,
         },
         ANS: false, // Automatic Noise Suppression
         AEC: false, // Acoustic Echo Cancellation
         AGC: false, // Automatic Gain Control
       });
+
+
+      const limitedAudioTrack = await createLimitedCustomTrack(audioTrack);
+      setLocalAudioTrack(limitedAudioTrack);
 
       setLocalAudioTrack(audioTrack);
       setIsMicConnected(true);
@@ -679,7 +731,10 @@ const Broadcast = () => {
       );
 
       const connectPromise = async () => {
-        await client.setClientRole('host');
+        await client.setClientRole('host',{
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         const { token, uid } = await generateToken("PUBLISHER", channelName);
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
@@ -1017,7 +1072,10 @@ const Broadcast = () => {
 
   const joinAndPublish = async (appId, channel) => {
     const { token, uid } = await generateToken("PUBLISHER", channel);
-    await client.setClientRole("host");
+    await client.setClientRole("host",{
+      audioProfile: 'music_standard', // better frequency range
+      audioScenario: 'showroom',      // optimized for speaking & singing
+    });
 
     // ensure mic is present
     if (!localAudioTrack || !checkAudioTrackHealth(localAudioTrack)) {
