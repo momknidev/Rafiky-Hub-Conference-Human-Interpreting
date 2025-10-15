@@ -436,6 +436,30 @@ const Broadcast = () => {
   }, [AgoraRTC, isSDKLoading]);
 
   // Enhanced microphone initialization with better error handling
+
+  const createLimitedCustomTrack = async (micTrack) => {
+    const micStream = await micTrack.getMediaStreamTrack();
+    if (!micStream) return null;
+  
+    const ctx = new AudioContext({ sampleRate: 48000 });
+    const src = ctx.createMediaStreamSource(new MediaStream([micStream]));
+    const comp = ctx.createDynamicsCompressor();
+    // gentle settings: tame peaks, no pumping
+    comp.threshold.value = -10;  // dB
+    comp.knee.value = 10;
+    comp.ratio.value = 3;        // mild
+    comp.attack.value = 0.003;
+    comp.release.value = 0.25;
+  
+    const dest = ctx.createMediaStreamDestination(); // PUBLISH GRAPH ONLY
+    src.connect(comp);
+    comp.connect(dest);
+  
+    const processed = dest.stream.getAudioTracks()[0];
+    return AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: processed });
+  }
+
+  
   const initializeMicrophone = async () => {
     if (!AgoraRTC) {
       toast.error('Audio system not ready. Please wait and try again.');
@@ -454,15 +478,18 @@ const Broadcast = () => {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
         encoderConfig: {
           sampleRate: 48000,
-          stereo: true,
-          bitrate: 128,
+          stereo: false,
+          bitrate: 96,
         },
-        ANS: true, // Automatic Noise Suppression
-        AEC: true, // Acoustic Echo Cancellation
-        AGC: true, // Automatic Gain Control
+        ANS: false, // Automatic Noise Suppression
+        AEC: false, // Acoustic Echo Cancellation
+        AGC: false, // Automatic Gain Control
       });
 
-      setLocalAudioTrack(audioTrack);
+
+      const limitedAudioTrack = await createLimitedCustomTrack(audioTrack);
+
+      setLocalAudioTrack(limitedAudioTrack);
       setIsMicConnected(true);
       setConnectionError(null);
       toast.success("Microphone connected successfully with noise cancellation!");
