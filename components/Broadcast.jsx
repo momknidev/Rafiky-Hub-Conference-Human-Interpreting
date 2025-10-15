@@ -185,7 +185,6 @@ const Broadcast = () => {
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => { }); // Ignore errors
         await client.setClientRole('host', {
-          level: 1,
           audioProfile: 'music_standard', // better frequency range
           audioScenario: 'showroom',      // optimized for speaking & singing
         });
@@ -573,7 +572,6 @@ const Broadcast = () => {
 
       const connectPromise = async () => {
         await client.setClientRole('host', {
-          level: 1,
           audioProfile: 'music_standard', // better frequency range
           audioScenario: 'showroom',      // optimized for speaking & singing
         });
@@ -830,7 +828,10 @@ const Broadcast = () => {
 
   const joinAndPublish = async (appId, channel,newLanguageValue) => {
     const { token, uid } = await generateToken("PUBLISHER", channel);
-    await client.setClientRole("host");
+    await client.setClientRole("host",{
+      audioProfile: 'music_standard', // better frequency range
+      audioScenario: 'showroom',      // optimized for speaking & singing
+    });
 
     // ensure mic is present
     if (!localAudioTrack || !checkAudioTrackHealth(localAudioTrack)) {
