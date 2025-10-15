@@ -124,6 +124,7 @@ const Broadcast = () => {
 
   const [isSwitching, setIsSwitching] = useState(false);
   const isSwitchingRef = useRef(false);
+  const relayDuckingTimerRef = useRef(null);
 
   useEffect(() => {
     channelNameRef.current = channelName;
@@ -612,9 +613,9 @@ const Broadcast = () => {
           stereo: true,
           bitrate: 128,
         },
-        ANS: true, // Automatic Noise Suppression
+        ANS: false, // Automatic Noise Suppression
         AEC: false, // Acoustic Echo Cancellation
-        AGC: true, // Automatic Gain Control
+        AGC: false, // Automatic Gain Control
       });
 
       setLocalAudioTrack(audioTrack);
@@ -1095,9 +1096,9 @@ const Broadcast = () => {
       const res = await getBroadcastInfoRequest(channelName);
       const broadcasterCount = res.data?.data?.broadcasters?.length || 0;
 
-      if(broadcasterCount === 0){
+      if (broadcasterCount === 0) {
         switchBroadcastChannel(language);
-      }else{
+      } else {
         toast.error("Someone is already on air in this language.");
         handleStopStream();
       }
@@ -1263,14 +1264,14 @@ const Broadcast = () => {
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("pointerdown", onInteract, { once: false, passive: true });
     window.addEventListener("keydown", onInteract);
-  
+
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pointerdown", onInteract);
       window.removeEventListener("keydown", onInteract);
     };
   }, []);
-  
+
 
   const handleSelectOtherChannel = (value) => {
     setSelectedOtherChannel(value);
@@ -1330,6 +1331,37 @@ const Broadcast = () => {
   if (sdkError) {
     return <ErrorComponent />;
   }
+
+
+ //map rms to volume
+  // function levelToDucking(level0to100) {
+  //   if (level0to100 > 30) return 30;  
+  //   return 80;                         
+  // }
+
+  // useEffect(() => {
+  //   if (!currentPlayingChannel) return;
+  //   const ch = otherChannels[currentPlayingChannel];
+  //   if (!ch?.audioTrack) return;
+
+ 
+  //   if (relayDuckingTimerRef.current) cancelAnimationFrame(relayDuckingTimerRef.current);
+  //   const tick = () => {
+  //     try {
+  //       const target = levelToDucking(micLevel);
+  //       ch.audioTrack.setVolume(target); 
+  //     } catch { }
+  //     relayDuckingTimerRef.current = requestAnimationFrame(tick);
+  //   };
+  //   relayDuckingTimerRef.current = requestAnimationFrame(tick);
+
+  //   return () => {
+  //     if (relayDuckingTimerRef.current) cancelAnimationFrame(relayDuckingTimerRef.current);
+  //     relayDuckingTimerRef.current = null;
+  //     try { ch.audioTrack.setVolume(80); } catch { }
+  //   };
+  // }, [micLevel, currentPlayingChannel, otherChannels]);
+
 
   return (
     <div className='monstant-font'>
