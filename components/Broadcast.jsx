@@ -331,11 +331,6 @@ const Broadcast = () => {
 
     agoraClient.on('user-published', async (user, mediaType) => {
       console.log("user publish")
-      if (mediaType === 'audio') {
-        await agoraClient.subscribe(user, mediaType);
-        const audioTrack = user.audioTrack;
-        setRemoteAudioTrack(audioTrack);
-      }
     });
 
     agoraClient.on('user-unpublished', (user, mediaType) => {
@@ -442,26 +437,49 @@ const Broadcast = () => {
   // Enhanced microphone initialization with better error handling
 
   const createLimitedCustomTrack = async (micTrack) => {
-    const micStream = await micTrack.getMediaStreamTrack();
-    if (!micStream) return null;
+    const micStreamTrack = micTrack.getMediaStreamTrack?.();
+    if (!micStreamTrack) return null;
   
-    const ctx = new AudioContext({ sampleRate: 48000 });
-    const src = ctx.createMediaStreamSource(new MediaStream([micStream]));
+    // ✅ Prefer a shared/singleton AudioContext if you have one
+    const ctx = new (window.AudioContext || (window).webkitAudioContext)({ sampleRate: 48000 });
+    if (ctx.state === 'suspended') await ctx.resume();
+  
+    // Source from the raw mic track
+    const src = ctx.createMediaStreamSource(new MediaStream([micStreamTrack]));
+  
+    // 1) Gentle compressor (tames dynamics)
     const comp = ctx.createDynamicsCompressor();
-    // gentle settings: tame peaks, no pumping
-    comp.threshold.value = -10;  // dB
-    comp.knee.value = 10;
-    comp.ratio.value = 3;        // mild
-    comp.attack.value = 0.003;
-    comp.release.value = 0.25;
+    comp.threshold.value = -10;   // dB (your values)
+    comp.knee.value = 10;         // dB
+    comp.ratio.value = 3;         // :1 mild compression
+    comp.attack.value = 0.003;    // s
+    comp.release.value = 0.25;    // s
   
-    const dest = ctx.createMediaStreamDestination(); // PUBLISH GRAPH ONLY
+    // 2) 🔒 Limiter AFTER compressor (brick-wall safety)
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1.0; // dB ceiling
+    limiter.knee.value = 0.0;
+    limiter.ratio.value = 20.0;     // high ratio ≈ limiter behavior
+    limiter.attack.value = 0.001;   // fast
+    limiter.release.value = 0.05;   // fast
+  
+    // Destination for publishing
+    const dest = ctx.createMediaStreamDestination();
+  
+    // Wire: mic → comp → limiter → dest
     src.connect(comp);
-    comp.connect(dest);
+    comp.connect(limiter);
+    limiter.connect(dest);
   
+    // Take processed track and hand it to Agora
     const processed = dest.stream.getAudioTracks()[0];
+  
+    // (Optional) force mono channel count metadata for downstream consistency
+    try { (processed).applyConstraints?.({ channelCount: 1 }); } catch {}
+  
     return AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: processed });
-  }
+  };
+  
 
   
   const initializeMicrophone = async () => {
