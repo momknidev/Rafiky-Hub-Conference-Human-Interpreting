@@ -16,6 +16,7 @@ import { useChannel } from '@/context/ChannelContext';
 import { useParams } from 'next/navigation';
 import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '@/constants/flagsMapping';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ensureAudioResumed, getSharedAudioContext } from '@/utils/audioContext';
 
 // Global cleanup registry
 if (typeof window !== "undefined") {
@@ -612,7 +613,7 @@ const Broadcast = () => {
           bitrate: 128,
         },
         ANS: true, // Automatic Noise Suppression
-        AEC: true, // Acoustic Echo Cancellation
+        AEC: false, // Acoustic Echo Cancellation
         AGC: true, // Automatic Gain Control
       });
 
@@ -1225,15 +1226,17 @@ const Broadcast = () => {
         }
 
         // ========== NEW: Resume AudioContext for partner audio ==========
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-          const ctx = new AudioContext();
-          if (ctx.state === "suspended") {
-            await ctx.resume();
-            console.log('[Partner Audio] AudioContext resumed');
-          }
-          window.agoraCleanupRegistry.audioContexts.push(ctx);
-        }
+        // const AudioContext = window.AudioContext || window.webkitAudioContext;
+        // if (AudioContext) {
+        //   const ctx = new AudioContext();
+        //   if (ctx.state === "suspended") {
+        //     await ctx.resume();
+        //     console.log('[Partner Audio] AudioContext resumed');
+        //   }
+        //   window.agoraCleanupRegistry.audioContexts.push(ctx);
+        // }
+
+        await getSharedAudioContext()
         // ========== END NEW CODE ==========
 
         // Play partner audio
@@ -1247,6 +1250,27 @@ const Broadcast = () => {
       toast.error("Error controlling partner audio");
     }
   };
+
+  useEffect(() => {
+    const onVis = async () => {
+      if (document.visibilityState === "visible") {
+        await ensureAudioResumed();
+      }
+    };
+    const onInteract = async () => {
+      await ensureAudioResumed();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pointerdown", onInteract, { once: false, passive: true });
+    window.addEventListener("keydown", onInteract);
+  
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("keydown", onInteract);
+    };
+  }, []);
+  
 
   const handleSelectOtherChannel = (value) => {
     setSelectedOtherChannel(value);

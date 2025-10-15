@@ -9,16 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('simplied-english');
+  const [channelName, setChannelName] = useState('debuggingSuppression-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`simplied-${language}`);
+    setChannelName(`debuggingSuppression-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `simplied-${lang}`;
+    return `debuggingSuppression-${lang}`;
   }
 
 
