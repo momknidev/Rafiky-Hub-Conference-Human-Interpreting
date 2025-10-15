@@ -184,7 +184,11 @@ const Broadcast = () => {
 
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => { }); // Ignore errors
-        await client.setClientRole('host');
+        await client.setClientRole('host', {
+          level: 1,
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         await client.join(APP_ID, CHANNEL_NAME, toast, uid);
         console.info(token, uid)
         if (localAudioTrack) {
@@ -550,7 +554,11 @@ const Broadcast = () => {
       );
 
       const connectPromise = async () => {
-        await client.setClientRole('host');
+        await client.setClientRole('host', {
+          level: 1,
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         const { token, uid } = await generateToken("PUBLISHER", channelName);
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
