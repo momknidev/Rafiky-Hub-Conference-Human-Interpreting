@@ -22,28 +22,62 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 
-const VISIBLE_LINES = 2;       // how many lines to show stacked
-const LINE_HEIGHT_PX = 56;     // visual line height (adjust to your font-size)
-const LINE_GAP_PX = 12;        // vertical gap between lines
+const VISIBLE_LINES = 2;          // show last N lines
+const LINE_GAP_PX = 12;           // gap between stacked lines
+
 
 const CascadeStage = ({ items, language }) => {
-  // take the LAST N items so the newest is the last element
   const visible = items.slice(-VISIBLE_LINES);
-  // compute positions: index 0 = oldest (highest), index (len-1) = newest (lowest)
-  const getBottom = (idx) =>
-    (visible.length - 1 - idx) * (LINE_HEIGHT_PX + LINE_GAP_PX);
+  const refs = useRef(new Map());
+  const [heights, setHeights] = useState({});
+
+  // track size per line (handles multi-line wraps)
+  useEffect(() => {
+    const observers = [];
+    visible.forEach((it) => {
+      const el = refs.current.get(it.uuid);
+      if (!el) return;
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const h = Math.ceil(entry.contentRect.height);
+          setHeights((prev) => (prev[it.uuid] === h ? prev : { ...prev, [it.uuid]: h }));
+        }
+      });
+      ro.observe(el);
+      observers.push(ro);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible.map((v) => v.uuid).join(",")]);
+
+  // compute bottoms so **newest is at bottom (0px)** and older stack above by real heights
+  const bottoms = {};
+  let acc = 0;
+  // newest last → iterate reverse to place from bottom up
+  [...visible].reverse().forEach((it, idx) => {
+    if (idx === 0) {
+      bottoms[it.uuid] = 0; // newest at bottom
+      acc = (heights[it.uuid] || 0) + LINE_GAP_PX;
+    } else {
+      bottoms[it.uuid] = acc;
+      acc += (heights[it.uuid] || 0) + LINE_GAP_PX;
+    }
+  });
 
   return (
     <div className="w-full h-[70vh] bg-black/50 bottom-0 left-0 right-0 absolute px-4 flex items-center justify-end flex-col overflow-hidden">
-      <div className="relative w-full max-w-6xl h-[220px] sm:h-[240px] md:h-[260px] bottom-[5rem]">
+      <div className="relative w-full max-w-4xl h-[60vh] bottom-[5rem]">
         {visible.map((item, i) => {
           const isNewest = i === visible.length - 1;
           const tier = visible.length - 1 - i; // 0=newest, 1=older, 2=oldest
           return (
             <div
               key={item.uuid}
-              className={`subtitle-abs ${isNewest ? 'subtitle-enter' : ''} ${tier === 0 ? 'tier-0' : tier === 1 ? 'tier-1' : 'tier-2'}`}
-              style={{ bottom: `${getBottom(i)}px`, height: `${LINE_HEIGHT_PX}px` }}
+              ref={(el) => refs.current.set(item.uuid, el)}
+              className={`subtitle-abs ${isNewest ? "subtitle-enter" : ""} ${
+                tier === 0 ? "tier-0" : tier === 1 ? "tier-1" : "tier-2"
+              }`}
+              style={{ bottom: `${bottoms[item.uuid] ?? 0}px` }}
             >
               <div className="flex items-center justify-center gap-3">
                 <h1 className="subtitle-text">{item.text}</h1>
