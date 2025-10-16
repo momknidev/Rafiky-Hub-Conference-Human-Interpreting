@@ -956,10 +956,10 @@ const Listner = () => {
               </Button>
             </div>
 
-            <div className="w-full h-[50vh] gradient bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col z-20">
+            <div className="w-full h-[70vh] gradient bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col z-20">
             </div>
 
-            <div className="w-full h-[50vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col">
+            <div className="w-full h-[70vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col">
               
               <h1 className='visible' id="subtitle-text" ref={subTitleText2ref}>{subTitle2}</h1>
               <h1 className='visible' id="subtitle-text" ref={subtitleTextRef}>{subtitleText}</h1>
