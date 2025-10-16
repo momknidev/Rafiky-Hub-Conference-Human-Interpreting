@@ -13,6 +13,60 @@ import { flagsMapping } from '@/constants/flagsMapping';
 import { usePrototype } from '@/hooks/usePrototype';
 import { v4 as uuidv4 } from 'uuid';
 
+
+
+
+
+
+
+
+
+
+const VISIBLE_LINES = 3;       // how many lines to show stacked
+const LINE_HEIGHT_PX = 56;     // visual line height (adjust to your font-size)
+const LINE_GAP_PX = 12;        // vertical gap between lines
+
+const CascadeStage = ({ items, language }) => {
+  // take the LAST N items so the newest is the last element
+  const visible = items.slice(-VISIBLE_LINES);
+  // compute positions: index 0 = oldest (highest), index (len-1) = newest (lowest)
+  const getBottom = (idx) =>
+    (visible.length - 1 - idx) * (LINE_HEIGHT_PX + LINE_GAP_PX);
+
+  return (
+    <div className="w-full h-[70vh] bg-black/50 bottom-0 left-0 right-0 absolute px-4 flex items-center justify-end flex-col overflow-hidden">
+      <div className="relative w-full max-w-6xl h-[220px] sm:h-[240px] md:h-[260px] bottom-[5rem]">
+        {visible.map((item, i) => {
+          const isNewest = i === visible.length - 1;
+          const tier = visible.length - 1 - i; // 0=newest, 1=older, 2=oldest
+          return (
+            <div
+              key={item.uuid}
+              className={`subtitle-abs ${isNewest ? 'subtitle-enter' : ''} ${tier === 0 ? 'tier-0' : tier === 1 ? 'tier-1' : 'tier-2'}`}
+              style={{ bottom: `${getBottom(i)}px`, height: `${LINE_HEIGHT_PX}px` }}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <h1 className="subtitle-text">{item.text}</h1>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
+
 // 🚨 CRITICAL: Browser compatibility detection
 const getBrowserInfo = () => {
   if (typeof navigator === 'undefined') return { name: 'unknown', version: '0', supported: false };
@@ -215,7 +269,7 @@ const Listner = () => {
   const protypeRef = usePrototype();
   const subTitleRef = useRef(null);
   const [subtitleText, setSubtitleText] = useState('');
-  const [subTitle2,setSubtitle2] = useState('')
+  const [subTitle2, setSubtitle2] = useState('')
   const subtitleTextRef = useRef(null);
   const subTitleText2ref = useState(null);
 
@@ -944,7 +998,7 @@ const Listner = () => {
         )
       }
 
-      {
+      {/* {
         (subtitleOpen && subTitle.length > 0 && openFullScreenSubtitle) && (
           <div className="fixed inset-0 z-50 bg-black h-[100vh] w-[100vw]">
             <div className='flex items-center justify-end gap-2 p-4 bg-black/20'>
@@ -966,7 +1020,29 @@ const Listner = () => {
             </div>
           </div>
         )
-      }
+      } */}
+
+
+      {(subtitleOpen && subTitle.length > 0 && openFullScreenSubtitle) && (
+        <div className="fixed inset-0 z-50 bg-black h-[100vh] w-[100vw]">
+          {/* top bar */}
+          <div className="flex items-center justify-end gap-2 p-4 bg-black/20">
+            <Button size="icon" variant="ghost" onClick={() => setSubtitleOpen(false)} className="text-white">
+              <XIcon className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setOpenFullScreenSubtitle(prev => !prev)} className="text-white">
+              <Fullscreen className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* gradient overlay (optional) */}
+          <div className="w-full h-[70vh] gradient bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col z-20" />
+
+          {/* CASCADE STAGE */}
+          <CascadeStage items={subTitle} language={language} />
+        </div>
+      )}
+
 
 
 
