@@ -215,7 +215,9 @@ const Listner = () => {
   const protypeRef = usePrototype();
   const subTitleRef = useRef(null);
   const [subtitleText, setSubtitleText] = useState('');
+  const [subTitle2,setSubtitle2] = useState('')
   const subtitleTextRef = useRef(null);
+  const subTitleText2ref = useState(null);
 
 
   //auto scroll to bottom
@@ -558,9 +560,12 @@ const Listner = () => {
             setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: msg?.words[0]?.text, isFinal: msg?.words[0]?.isFinal }]);
             subtitleTextRef.current?.classList.remove("visible");
             setTimeout(() => {
-              setSubtitleText(msg?.words[0]?.text);
+              setSubtitleText(prev => {
+                setSubtitle2(prev)
+                return msg?.words[0]?.text
+              });
               subtitleTextRef.current?.classList.add("visible");
-            }, 200);
+            }, 1000);
           }
         }
 
@@ -950,7 +955,13 @@ const Listner = () => {
                 <Fullscreen className="w-4 h-4" />
               </Button>
             </div>
-            <div className="w-full h-[50vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center">
+
+            <div className="w-full h-[50vh] gradient bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col z-20">
+            </div>
+
+            <div className="w-full h-[50vh] bg-black/50 bottom-0 left-0 right-0 absolute p-4 flex items-center justify-center flex-col">
+              
+              <h1 className='visible' id="subtitle-text" ref={subTitleText2ref}>{subTitle2}</h1>
               <h1 className='visible' id="subtitle-text" ref={subtitleTextRef}>{subtitleText}</h1>
             </div>
           </div>
