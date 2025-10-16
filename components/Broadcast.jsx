@@ -95,13 +95,14 @@ const Broadcast = () => {
   const streamStartTimeRef = useRef(null);
   const isLiveRef = useRef(false);
   const maxReconnectAttempts = 8;
-  const { channelName, setLanguage, getChannelName,getLanguage } = useChannel();
+  const { channelName, setLanguage, getChannelName, getLanguage } = useChannel();
   const [otherChannels, setOtherChannels] = useState({});
   const otherChannelsPlayingRef = useRef({});
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
   const [airEventCount, setAirEventCount] = useState(null);
+  const [mute, setMute] = useState(false)
 
 
   const [isSwitching, setIsSwitching] = useState(false);
@@ -438,14 +439,14 @@ const Broadcast = () => {
   const createLimitedCustomTrack = async (micTrack) => {
     const micStreamTrack = micTrack.getMediaStreamTrack?.();
     if (!micStreamTrack) return null;
-  
+
     // ✅ Prefer a shared/singleton AudioContext if you have one
     const ctx = new (window.AudioContext || (window).webkitAudioContext)({ sampleRate: 48000 });
     if (ctx.state === 'suspended') await ctx.resume();
-  
+
     // Source from the raw mic track
     const src = ctx.createMediaStreamSource(new MediaStream([micStreamTrack]));
-  
+
     // 1) Gentle compressor (tames dynamics)
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -10;   // dB (your values)
@@ -453,7 +454,7 @@ const Broadcast = () => {
     comp.ratio.value = 3;         // :1 mild compression
     comp.attack.value = 0.003;    // s
     comp.release.value = 0.25;    // s
-  
+
     // 2) 🔒 Limiter AFTER compressor (brick-wall safety)
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -1.0; // dB ceiling
@@ -461,26 +462,26 @@ const Broadcast = () => {
     limiter.ratio.value = 20.0;     // high ratio ≈ limiter behavior
     limiter.attack.value = 0.001;   // fast
     limiter.release.value = 0.05;   // fast
-  
+
     // Destination for publishing
     const dest = ctx.createMediaStreamDestination();
-  
+
     // Wire: mic → comp → limiter → dest
     src.connect(comp);
     comp.connect(limiter);
     limiter.connect(dest);
-  
+
     // Take processed track and hand it to Agora
     const processed = dest.stream.getAudioTracks()[0];
-  
+
     // (Optional) force mono channel count metadata for downstream consistency
-    try { (processed).applyConstraints?.({ channelCount: 1 }); } catch {}
-  
+    try { (processed).applyConstraints?.({ channelCount: 1 }); } catch { }
+
     return AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: processed });
   };
-  
 
-  
+
+
   const initializeMicrophone = async () => {
     if (!AgoraRTC) {
       toast.error('Audio system not ready. Please wait and try again.');
@@ -500,7 +501,7 @@ const Broadcast = () => {
         encoderConfig: {
           sampleRate: 48000,
           stereo: false,
-          bitrate: 96,
+          bitrate: 32,
         },
         ANS: false, // Automatic Noise Suppression
         AEC: false, // Acoustic Echo Cancellation
@@ -826,9 +827,9 @@ const Broadcast = () => {
   // };
 
 
-  const joinAndPublish = async (appId, channel,newLanguageValue) => {
+  const joinAndPublish = async (appId, channel, newLanguageValue) => {
     const { token, uid } = await generateToken("PUBLISHER", channel);
-    await client.setClientRole("host",{
+    await client.setClientRole("host", {
       audioProfile: 'music_standard', // better frequency range
       audioScenario: 'showroom',      // optimized for speaking & singing
     });
@@ -881,9 +882,9 @@ const Broadcast = () => {
       await new Promise((r) => setTimeout(r, 150));
 
       // (re)join + publish on the new channel
-      await joinAndPublish(APP_ID, newChannel,newLanguageValue);
+      await joinAndPublish(APP_ID, newChannel, newLanguageValue);
 
-      
+
 
       setConnectionStatus("connected");
       setIsLive(true);
@@ -1002,6 +1003,12 @@ const Broadcast = () => {
       await initializeMicrophone();
     }
   };
+
+  const handleMuteUnmute = () => {
+
+    localAudioTrack.setMuted(!mute)
+    setMute(prev => !prev);
+  }
 
   const handleReconnect = async () => {
     toast.info("Attempting to reconnect microphone...");
@@ -1199,130 +1206,12 @@ const Broadcast = () => {
         </header>
 
         {/* Connection Alert Banner */}
-        {(isReconnecting || connectionStatus === 'error' || connectionError) && (
-          <div className={`w-full p-4 ${isReconnecting ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
-            } border-b`}>
-            <div className="container mx-auto flex items-center gap-3">
-              <StatusIcon className={`h-5 w-5 ${statusConfig.iconClass}`} />
-              <div>
-                <p className={`font-semibold ${isReconnecting ? 'text-blue-800' : 'text-red-800'
-                  }`}>
-                  {isReconnecting
-                    ? 'Reconnecting to broadcast service...'
-                    : 'Broadcast service connection failed'
-                  }
-                </p>
-                <p className={`text-sm ${isReconnecting ? 'text-blue-600' : 'text-red-600'
-                  }`}>
-                  {connectionError || (isReconnecting
-                    ? 'Your broadcast will resume automatically. Listeners will reconnect when service is restored.'
-                    : 'Please check your connection and try restarting the broadcast.'
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Main Content */}
         <main className="container mx-auto p-8 max-w-7xl">
           {/* Status Cards Row */}
-          {/* <div className="grid gap-8 md:grid-cols-4 mb-12">
-        
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-red-50 rounded-2xl">
-                    <Radio className="h-8 w-8 text-red-600" />
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${isLive ? 'bg-zero-status-good animate-pulse' : 'bg-gray-400'}`} />
-                </div>
 
-                <div className="space-y-3">
-                  <div className="text-3xl font-playfair font-bold text-zero-text">
-                    {isLive ? 'LIVE' : 'OFFLINE'}
-                  </div>
-                  {isLive && (
-                    <div className="text-sm text-zero-text/70 font-inter font-medium">
-                      Duration: {formatDuration(streamDuration)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className={`p-4 rounded-2xl ${isMicConnected ? 'bg-emerald-50' : 'bg-orange-50'}`}>
-                    {isMicConnected ?
-                      <Mic className="h-8 w-8 text-emerald-600" /> :
-                      <MicOff className="h-8 w-8 text-orange-600" />
-                    }
-                  </div>
-                  <Button
-                    onClick={handleReconnect}
-                    size="sm"
-                    variant="outline"
-                    className="text-xs font-medium"
-                    disabled={isMicConnected}
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-1" />
-                    {isMicConnected ? 'Connected' : 'Reconnect'}
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`text-lg font-bold font-inter ${isMicConnected ? 'text-zero-status-good' : 'text-zero-warning'}`}>
-                    {isMicConnected ? 'Connected' : 'Not Detected'}
-                  </div>
-                  <div className="text-xs text-zero-text/60 font-inter">
-                    {isMicConnected ? 'Audio input ready' : 'Check permissions'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-blue-50 rounded-2xl">
-                    <Users className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <Monitor className="h-6 w-6 text-zero-blue" />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-3xl font-playfair font-bold text-zero-text">
-                    {listenerCount}
-                  </div>
-                  <div className="text-sm text-zero-text/70 font-inter font-medium">
-                    {listenerCount === 1 ? 'listener' : 'listeners'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-white/90 backdrop-blur-xl shadow-xl border-0 rounded-3xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-emerald-50 rounded-2xl">
-                    <Wifi className="h-8 w-8 text-emerald-600" />
-                  </div>
-                  <Signal className={`h-6 w-6 ${getNetworkColor()}`} />
-                </div>
-
-                <div className="space-y-3">
-                  <div className={`text-lg font-bold font-inter ${getNetworkColor()}`}>
-                    {networkQuality}
-                  </div>
-                  <div className="text-xs text-zero-text/60 font-inter">
-                    Network Quality
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div> */}
 
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Main Controls */}
@@ -1434,15 +1323,29 @@ const Broadcast = () => {
                       <h4 className="text-2xl font-playfair font-bold text-zero-text">
                         Audio Monitor
                       </h4>
-                      <Button
-                        onClick={handleMicToggle}
-                        variant="outline"
-                        size="sm"
-                        className="border-zero-navy text-zero-navy hover:bg-zero-navy hover:text-white font-inter font-medium"
-                        disabled={isLive}
-                      >
-                        {isMicConnected ? 'Disconnect' : 'Connect'}
-                      </Button>
+                      <div className='flex items-center gap-3'>
+
+                        <Button
+                          onClick={handleMuteUnmute}
+                          variant="outline"
+                          size="sm"
+                          className="border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white font-inter font-medium"
+                          disabled={!isLive}
+                        >
+                          {mute ? 'Unmute' : 'Mute'}
+                        </Button>
+                        <Button
+                          onClick={handleMicToggle}
+                          variant="outline"
+                          size="sm"
+                          className="border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white font-inter font-medium"
+                          disabled={isLive}
+                        >
+                          {isMicConnected ? 'Disconnect' : 'Connect'}
+                        </Button>
+
+
+                      </div>
                     </div>
 
                     <AudioLevelMeter
