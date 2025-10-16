@@ -22,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 
-const VISIBLE_LINES = 3;       // how many lines to show stacked
+const VISIBLE_LINES = 2;       // how many lines to show stacked
 const LINE_HEIGHT_PX = 56;     // visual line height (adjust to your font-size)
 const LINE_GAP_PX = 12;        // vertical gap between lines
 
