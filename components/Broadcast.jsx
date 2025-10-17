@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StartCaption, StopCaption } from '@/services/CaptionService';
 import { usePrototype } from '@/hooks/usePrototype'
 import { LanguageBotMap } from '@/constants/captionUIDs';
+import useTranscribe from '@/hooks/useTranscription';
 
 if (typeof window !== "undefined") {
   window.agoraCleanupRegistry = window.agoraCleanupRegistry || {
@@ -68,6 +69,7 @@ const Broadcast = () => {
   const [waitingForResponseToHandoverRquestPopup, setWaitingForResponseToHandoverRquestPopup] = useState(false);
   const [handoverRequestResponse, setHandoverRequestResponse] = useState(null);
   const [loading, setLoading] = useState(false);
+  
 
   // Basic state
   const [isLive, setIsLive] = useState(false);
@@ -111,6 +113,16 @@ const Broadcast = () => {
   const agentSttRef = useRef(null);
   const protypeRef = usePrototype();
   const langRef = useRef(language);
+
+  const { startTranscription, stopTranscription, state, error } = useTranscribe({
+    onTranscription: async (transcription) => {
+      console.log('transcription', transcription);
+      const CHANNEL_NAME = channelName;
+      await pushMessage("on-transcription", {
+        transcription: transcription,
+      }, CHANNEL_NAME);
+    }
+  });
 
   useEffect(() => {
     channelNameRef.current = channelName;
@@ -580,8 +592,9 @@ const Broadcast = () => {
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
 
-        const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);
-        agentSttRef.current = agentRes.agentId;
+        // const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);
+        // agentSttRef.current = agentRes.agentId;
+        startTranscription(language);
       };
 
       // Race between connection and timeout
@@ -663,6 +676,8 @@ const Broadcast = () => {
         clearTimeout(reconnectTimeoutRef.current);
         setIsReconnecting(false);
       }
+
+      stopTranscription();
 
       // Send session end notification to backend
       try {
@@ -843,8 +858,9 @@ const Broadcast = () => {
     await client.join(appId, channel, token, uid);
     await client.publish(localAudioTrack);
 
-    const agentRes = await StartCaption(channel, newLanguageValue, uid);
-    agentSttRef.current = agentRes.agentId;
+    // const agentRes = await StartCaption(channel, newLanguageValue, uid);
+    // agentSttRef.current = agentRes.agentId;
+    startTranscription(newLanguageValue);
   };
 
 
@@ -865,7 +881,8 @@ const Broadcast = () => {
     try {
       // notify others you’re going off-air on the old channel
       await sendBroadcasterEvent(0);
-      StopCaption(agentSttRef.current);
+      // StopCaption(agentSttRef.current);
+      stopTranscription();
 
       // leave old channel safely
       try {

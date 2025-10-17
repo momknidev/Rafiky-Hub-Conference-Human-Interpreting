@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { flagsMapping } from '@/constants/flagsMapping';
 import { usePrototype } from '@/hooks/usePrototype';
 import { v4 as uuidv4 } from 'uuid';
+import Pusher from 'pusher-js';
 
 
 
@@ -74,9 +75,8 @@ const CascadeStage = ({ items, language }) => {
             <div
               key={item.uuid}
               ref={(el) => refs.current.set(item.uuid, el)}
-              className={`subtitle-abs ${isNewest ? "subtitle-enter" : ""} ${
-                tier === 0 ? "tier-0" : tier === 1 ? "tier-1" : "tier-2"
-              }`}
+              className={`subtitle-abs ${isNewest ? "subtitle-enter" : ""} ${tier === 0 ? "tier-0" : tier === 1 ? "tier-1" : "tier-2"
+                }`}
               style={{ bottom: `${bottoms[item.uuid] ?? 0}px` }}
             >
               <div className="flex items-center justify-center gap-3">
@@ -900,108 +900,36 @@ const Listner = () => {
 
   const streamStatus = getStreamStatus();
 
-  // Browser incompatibility screen
-  // if (showBrowserWarning && browserInfo && !browserInfo.supported) {
-  //   return (
-  //     <div className="min-h-screen bg-zero-beige flex items-center justify-center">
-  //       <div className="text-center max-w-lg mx-auto p-8">
-  //         <div className="w-20 h-20 mx-auto mb-6 bg-orange-100 rounded-full flex items-center justify-center">
-  //           <AlertCircle className="w-10 h-10 text-orange-600" />
-  //         </div>
 
-  //         <h2 className="text-2xl font-inter font-bold text-zero-text mb-4">
-  //           Browser Compatibility Issue
-  //         </h2>
 
-  //         <div className="bg-gray-50 rounded-xl p-6 mb-6 text-left">
-  //           <h3 className="font-semibold mb-3">Detected Browser:</h3>
-  //           <div className="space-y-2 text-sm">
-  //             <div><strong>Browser:</strong> {browserInfo.name} {browserInfo.version}</div>
-  //             <div><strong>WebRTC Support:</strong> {browserInfo.hasWebRTC ? '✅ Yes' : '❌ No'}</div>
-  //             <div><strong>Media API:</strong> {browserInfo.hasMediaDevices ? '✅ Yes' : '❌ No'}</div>
-  //           </div>
-  //         </div>
+  // Initialize Pusher
+  useEffect(() => {
 
-  //         <div className="bg-blue-50 rounded-xl p-6 mb-6">
-  //           <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-  //             <Chrome className="w-5 h-5" />
-  //             Recommended Solution
-  //           </h3>
-  //           <p className="text-blue-700 text-sm">
-  //             For the best experience, please use <strong>Google Chrome</strong> browser, 
-  //             which has been tested and confirmed to work properly with our interpretation service.
-  //           </p>
-  //         </div>
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+    });
+    const CHANNEL_NAME = channelName;
+    const channel = pusher.subscribe(CHANNEL_NAME);
+    channel.bind('on-transcription', (data) => {
+      console.log('transcription', data.data.transcription);
+      subTitleRef.current = uuidv4();
+      setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: data.data.transcription, isFinal: true }]);
+      subtitleTextRef.current?.classList.remove("visible");
+      setTimeout(() => {
+        setSubtitleText(prev => {
+          setSubtitle2(prev)
+          return data.data.transcription
+        });
+        subtitleTextRef.current?.classList.add("visible");
+      }, 1000);
+    });
 
-  //         <div className="space-y-3">
-  //           <Button
-  //             onClick={() => {
-  //               setShowBrowserWarning(false);
-  //               setConnectionError(null);
-  //             }}
-  //             className="w-full bg-orange-600 text-white hover:bg-orange-700 font-inter font-semibold py-3 rounded-xl"
-  //           >
-  //             Continue Anyway
-  //           </Button>
-
-  //           <Button
-  //             onClick={() => window.location.reload()}
-  //             className="w-full bg-blue-600 text-white hover:bg-blue-700 font-inter font-semibold py-3 rounded-xl"
-  //           >
-  //             Refresh Page
-  //           </Button>
-
-  //           <p className="text-xs text-gray-600">
-  //             If problems persist, please contact support: info@rafiky.net
-  //           </p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // SDK loading failure
-  // if (sdkError) {
-  //   return (
-  //     <div className="min-h-screen bg-zero-beige flex items-center justify-center">
-  //       <div className="text-center max-w-md mx-auto p-8">
-  //         <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-600" />
-  //         <h2 className="text-xl font-inter font-semibold text-zero-text mb-2">
-  //           Service Unavailable
-  //         </h2>
-  //         <p className="text-zero-text/70 font-inter mb-6">
-  //           Failed to load interpretation service: {sdkError}
-  //         </p>
-
-  //         {browserInfo && (
-  //           <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left text-sm">
-  //             <div><strong>Browser:</strong> {browserInfo.name} {browserInfo.version}</div>
-  //             <div><strong>Compatible:</strong> {browserInfo.supported ? 'Yes' : 'No'}</div>
-  //           </div>
-  //         )}
-
-  //         <div className="space-y-3">
-  //           <Button
-  //             onClick={() => window.location.reload()}
-  //             className="w-full bg-zero-blue text-white hover:bg-zero-blue/90 font-inter font-semibold"
-  //           >
-  //             Refresh Page
-  //           </Button>
-
-  //           <div className="bg-blue-50 rounded-lg p-4">
-  //             <div className="flex items-center gap-2 mb-2">
-  //               <Chrome className="w-4 h-4 text-blue-600" />
-  //               <span className="text-sm font-semibold text-blue-800">Recommended</span>
-  //             </div>
-  //             <p className="text-xs text-blue-600">
-  //               Try using Google Chrome browser for the best compatibility
-  //             </p>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(CHANNEL_NAME);
+      pusher.disconnect();
+    };
+  }, [channelName]);
 
 
 

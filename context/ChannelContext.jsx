@@ -9,16 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('rational-english');
+  const [channelName, setChannelName] = useState('soniox-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`rational-${language}`);
+    setChannelName(`soniox-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `rational-${lang}`;
+    return `soniox-${lang}`;
   }
 
   const getLanguage = () => {
