@@ -18,21 +18,21 @@ export const languages = [
     //     value: 'italian',
     //     flag: '/flags/it.svg',
     // },
-    // {
-    //     name: 'ENGLISH',
-    //     value: 'english',
-    //     flag: '/flags/gb-eng.svg',
-    // },
+    {
+        name: 'ENGLISH',
+        value: 'english',
+        flag: '/flags/gb-eng.svg',
+    },
     // {
     //     name: 'GERMAN',
     //     value: 'german',
     //     flag: '/flags/de.svg',
     // },
-    {
-        name: 'FRENCH',
-        value: 'french',
-        flag: '/flags/fr.svg',
-    },
+    // {
+    //     name: 'FRENCH',
+    //     value: 'french',
+    //     flag: '/flags/fr.svg',
+    // },
     // {
     //     name: 'ROMANIAN',
     //     value: 'romanian',

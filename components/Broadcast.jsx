@@ -74,6 +74,8 @@ const Broadcast = () => {
   const [selectedOtherChannel, setSelectedOtherChannel] = useState(null);
   const channelNameRef = useRef(channelName);
   const [airEventCount, setAirEventCount] = useState(null);
+
+  const [mute, setMute] = useState(false);
   useEffect(() => {
     channelNameRef.current = channelName;
   }, [channelName]);
@@ -147,7 +149,10 @@ const Broadcast = () => {
 
         // Try to rejoin and republish with same session context
         await client.leave().catch(() => { }); // Ignore errors
-        await client.setClientRole('host');
+        await client.setClientRole('host', {
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         await client.join(APP_ID, CHANNEL_NAME, toast, uid);
         console.info(token, uid)
         if (localAudioTrack) {
@@ -340,8 +345,8 @@ const Broadcast = () => {
       if (mediaType === 'audio' && isComponentMountedRef.current) {
         setIsPartnerAudioPlaying(false);
         setRemoteAudioTrack(null);
-        
-        setTimeout(() => setAirEventCount(null),5000)
+
+        setTimeout(() => setAirEventCount(null), 5000)
       }
     });
 
@@ -379,6 +384,52 @@ const Broadcast = () => {
     };
   }, [AgoraRTC, isSDKLoading]);
 
+
+
+  const createLimitedCustomTrack = async (micTrack) => {
+    const micStreamTrack = micTrack.getMediaStreamTrack?.();
+    if (!micStreamTrack) return null;
+
+    // ✅ Prefer a shared/singleton AudioContext if you have one
+    const ctx = new (window.AudioContext || (window).webkitAudioContext)({ sampleRate: 48000 });
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    // Source from the raw mic track
+    const src = ctx.createMediaStreamSource(new MediaStream([micStreamTrack]));
+
+    // 1) Gentle compressor (tames dynamics)
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10;   // dB (your values)
+    comp.knee.value = 10;         // dB
+    comp.ratio.value = 3;         // :1 mild compression
+    comp.attack.value = 0.003;    // s
+    comp.release.value = 0.25;    // s
+
+    // 2) 🔒 Limiter AFTER compressor (brick-wall safety)
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1.0; // dB ceiling
+    limiter.knee.value = 0.0;
+    limiter.ratio.value = 20.0;     // high ratio ≈ limiter behavior
+    limiter.attack.value = 0.001;   // fast
+    limiter.release.value = 0.05;   // fast
+
+    // Destination for publishing
+    const dest = ctx.createMediaStreamDestination();
+
+    // Wire: mic → comp → limiter → dest
+    src.connect(comp);
+    comp.connect(limiter);
+    limiter.connect(dest);
+
+    // Take processed track and hand it to Agora
+    const processed = dest.stream.getAudioTracks()[0];
+
+    // (Optional) force mono channel count metadata for downstream consistency
+    try { (processed).applyConstraints?.({ channelCount: 1 }); } catch { }
+
+    return AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: processed });
+  };
+
   // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
     if (!AgoraRTC) {
@@ -398,15 +449,17 @@ const Broadcast = () => {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
         encoderConfig: {
           sampleRate: 48000,
-          stereo: true,
-          bitrate: 128,
+          stereo: false,
+          bitrate: 32,
         },
-        ANS: true, // Automatic Noise Suppression
-        AEC: true, // Acoustic Echo Cancellation
-        AGC: true, // Automatic Gain Control
+        ANS: false, // Automatic Noise Suppression
+        AEC: false, // Acoustic Echo Cancellation
+        AGC: false, // Automatic Gain Control
       });
 
-      setLocalAudioTrack(audioTrack);
+      const limitedAudioTrack = await createLimitedCustomTrack(audioTrack);
+      setLocalAudioTrack(limitedAudioTrack);
+
       setIsMicConnected(true);
       setConnectionError(null);
       toast.success("Microphone connected successfully with noise cancellation!");
@@ -435,6 +488,10 @@ const Broadcast = () => {
       toast.error(errorMessage, { duration: 8000 });
     }
   };
+
+
+
+
 
   // Enhanced start broadcast with session tracking and timeout
   const handleStartStream = async () => {
@@ -467,7 +524,10 @@ const Broadcast = () => {
       );
 
       const connectPromise = async () => {
-        await client.setClientRole('host');
+        await client.setClientRole('host', {
+          audioProfile: 'music_standard', // better frequency range
+          audioScenario: 'showroom',      // optimized for speaking & singing
+        });
         const { token, uid } = await generateToken("PUBLISHER", channelName);
         await client.join(APP_ID, CHANNEL_NAME, token, uid);
         await client.publish(localAudioTrack);
@@ -478,7 +538,7 @@ const Broadcast = () => {
 
       setIsLive(true);
       setConnectionStatus('connected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0); // Reset on successful start
       setConnectionError(null);
@@ -542,7 +602,7 @@ const Broadcast = () => {
 
       setIsLive(false);
       setConnectionStatus('disconnected');
-      
+
       setStreamDuration(0);
       setReconnectAttempts(0);
       setConnectionError(null);
@@ -656,9 +716,9 @@ const Broadcast = () => {
     channel.bind('on-reject-to-handover', (data) => {
       setHandoverRequestResponse("rejected");
     });
-    
+
     channel.bind('on-air-event', (data) => {
-      console.log("manan",data.data.message)
+      console.log("manan", data.data.message)
       setAirEventCount(data.data.message)
     });
 
@@ -704,7 +764,7 @@ const Broadcast = () => {
     }, CHANNEL_NAME);
   };
 
- 
+
 
 
 
@@ -785,6 +845,14 @@ const Broadcast = () => {
     }
   };
 
+  
+  const handleMuteUnmute = () => {
+
+    localAudioTrack.setMuted(!mute)
+    setMute(prev => !prev);
+  }
+
+
   const handleReconnect = async () => {
     toast.info("Attempting to reconnect microphone...");
     await initializeMicrophone();
@@ -811,7 +879,7 @@ const Broadcast = () => {
       await remoteAudioTrack.play();
       setIsPartnerAudioPlaying(true);
 
-   
+
     }
   };
 
@@ -1147,15 +1215,29 @@ const Broadcast = () => {
                       <h4 className="text-2xl font-playfair font-bold text-zero-text">
                         Audio Monitor
                       </h4>
-                      <Button
-                        onClick={handleMicToggle}
-                        variant="outline"
-                        size="sm"
-                        className="border-zero-navy text-zero-navy hover:bg-zero-navy hover:text-white font-inter font-medium"
-                        disabled={isLive}
-                      >
-                        {isMicConnected ? 'Disconnect' : 'Connect'}
-                      </Button>
+                      <div className='flex items-center gap-3'>
+
+                        <Button
+                          onClick={handleMuteUnmute}
+                          variant="outline"
+                          size="sm"
+                          className="border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white font-inter font-medium"
+                          disabled={!isLive}
+                        >
+                          {mute ? 'Unmute' : 'Mute'}
+                        </Button>
+                        <Button
+                          onClick={handleMicToggle}
+                          variant="outline"
+                          size="sm"
+                          className="border-zero-navy text-zero-text hover:bg-zero-navy hover:text-white font-inter font-medium"
+                          disabled={isLive}
+                        >
+                          {isMicConnected ? 'Disconnect' : 'Connect'}
+                        </Button>
+
+
+                      </div>
                     </div>
 
                     <AudioLevelMeter
@@ -1212,7 +1294,7 @@ const Broadcast = () => {
                               <span className="text-zero-text/70 block mt-5">Partner is Live</span>
                             )
                           }
-                        </div>                    
+                        </div>
                       </div>
                     )
                   }
