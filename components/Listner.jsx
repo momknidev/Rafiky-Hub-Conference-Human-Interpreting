@@ -66,7 +66,7 @@ const CascadeStage = ({ items, language }) => {
 
   return (
     <div className="w-full h-[70vh] bg-black/50 bottom-0 left-0 right-0 absolute px-4 flex items-center justify-end flex-col overflow-hidden">
-      <div className="relative w-full max-w-4xl h-[60vh] bottom-[5rem]">
+      <div className="relative w-full max-w-8xl h-[70vh] bottom-[5rem]">
         {visible.map((item, i) => {
           const isNewest = i === visible.length - 1;
           const tier = visible.length - 1 - i; // 0=newest, 1=older, 2=oldest
