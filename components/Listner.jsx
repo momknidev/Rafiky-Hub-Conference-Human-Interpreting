@@ -910,6 +910,7 @@ const Listner = () => {
     });
     const CHANNEL_NAME = channelName;
     const channel = pusher.subscribe(CHANNEL_NAME);
+    console.log(`${CHANNEL_NAME} subscribed successfully`);
     channel.bind('on-transcription', (data) => {
       console.log('transcription', data.data.transcription);
       subTitleRef.current = uuidv4();

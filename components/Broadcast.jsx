@@ -114,19 +114,23 @@ const Broadcast = () => {
   const protypeRef = usePrototype();
   const langRef = useRef(language);
 
+
+  useEffect(() => {
+    channelNameRef.current = channelName;
+  }, [channelName]);
+
+
+  
   const { startTranscription, stopTranscription, state, error } = useTranscribe({
     onTranscription: async (transcription) => {
       console.log('transcription', transcription);
-      const CHANNEL_NAME = channelName;
+      const CHANNEL_NAME = channelNameRef.current;
+      console.log(CHANNEL_NAME, "CHANNEL_NAME");
       await pushMessage("on-transcription", {
         transcription: transcription,
       }, CHANNEL_NAME);
     }
   });
-
-  useEffect(() => {
-    channelNameRef.current = channelName;
-  }, [channelName]);
 
   useEffect(() => {
     setLanguage(language);
@@ -768,6 +772,7 @@ const Broadcast = () => {
     });
     const CHANNEL_NAME = channelName;
     const channel = pusher.subscribe(CHANNEL_NAME);
+    console.log(`${CHANNEL_NAME} subscribed successfully`);
     channel.bind('on-request-to-handover', (data) => {
       console.log(isLiveRef.current, "hello");
       if (isLiveRef.current) {
