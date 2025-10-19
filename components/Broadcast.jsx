@@ -112,7 +112,11 @@ const Broadcast = () => {
 
   const agentSttRef = useRef(null);
   const protypeRef = usePrototype();
-  const langRef = useRef(language);
+  const clientRef = useRef(null);
+  useEffect(() => {
+    clientRef.current = client; 
+  }, [client]);
+
 
 
   useEffect(() => {
@@ -120,15 +124,29 @@ const Broadcast = () => {
   }, [channelName]);
 
 
+
+
+  const sendTranscriptOverRTC = async (text, isFinal = true) => {
+    const Text = protypeRef.current.lookupType("Agora.SpeechToText.Text");
+    const payload = Text.encode({
+      dataType: "transcribe",
+      words: [{ text, isFinal }]
+    }).finish(); 
+
+    await clientRef.current.sendStreamMessage(payload); 
+  }
+
+
   
   const { startTranscription, stopTranscription, state, error } = useTranscribe({
     onTranscription: async (transcription) => {
       console.log('transcription', transcription);
-      const CHANNEL_NAME = channelNameRef.current;
-      console.log(CHANNEL_NAME, "CHANNEL_NAME");
-      await pushMessage("on-transcription", {
-        transcription: transcription,
-      }, CHANNEL_NAME);
+      await sendTranscriptOverRTC(transcription, true);
+      // const CHANNEL_NAME = channelNameRef.current;
+      // console.log(CHANNEL_NAME, "CHANNEL_NAME");
+      // await pushMessage("on-transcription", {
+      //   transcription: transcription,
+      // }, CHANNEL_NAME);
     }
   });
 
@@ -176,6 +194,9 @@ const Broadcast = () => {
       isMounted = false;
     };
   }, []);
+
+
+  
 
   // Enhanced reconnection function with session persistence
   const attemptReconnection = useCallback(async () => {
@@ -593,7 +614,7 @@ const Broadcast = () => {
           audioScenario: 'showroom',      // optimized for speaking & singing
         });
         const { token, uid } = await generateToken("PUBLISHER", channelName);
-        await client.join(APP_ID, CHANNEL_NAME, token, uid);
+        await client.join(APP_ID, CHANNEL_NAME, token, uid); 
         await client.publish(localAudioTrack);
 
         // const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);

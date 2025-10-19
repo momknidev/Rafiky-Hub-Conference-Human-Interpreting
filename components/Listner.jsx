@@ -901,39 +901,6 @@ const Listner = () => {
   const streamStatus = getStreamStatus();
 
 
-
-  // Initialize Pusher
-  useEffect(() => {
-
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
-    });
-    const CHANNEL_NAME = channelName;
-    const channel = pusher.subscribe(CHANNEL_NAME);
-    console.log(`${CHANNEL_NAME} subscribed successfully`);
-    channel.bind('on-transcription', (data) => {
-      console.log('transcription', data.data.transcription);
-      subTitleRef.current = uuidv4();
-      setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: data.data.transcription, isFinal: true }]);
-      subtitleTextRef.current?.classList.remove("visible");
-      setTimeout(() => {
-        setSubtitleText(prev => {
-          setSubtitle2(prev)
-          return data.data.transcription
-        });
-        subtitleTextRef.current?.classList.add("visible");
-      }, 1000);
-    });
-
-    return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(CHANNEL_NAME);
-      pusher.disconnect();
-    };
-  }, [channelName]);
-
-
-
   return (
     <>
 
