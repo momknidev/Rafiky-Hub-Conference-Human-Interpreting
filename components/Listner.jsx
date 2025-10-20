@@ -897,7 +897,7 @@ const Listner = () => {
 
             <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2 mt-10'>
               {
-                <img src={`/images/main-logo.png`} alt="Livello Logo" className='w-[4rem] md:w-[7rem] object-contain aspect-square' />
+                <img src={`/images/main-logo.png`} alt="Livello Logo" className='w-[10rem] md:w-[15rem] object-contain aspect-square' />
               }
             </div>
           </div>
