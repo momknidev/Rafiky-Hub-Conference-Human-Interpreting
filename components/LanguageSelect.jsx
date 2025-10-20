@@ -10,11 +10,9 @@ const LanguageSelect = () => {
   return (
     <div className='h-screen w-screen flex flex-col items-center justify-start py-10 px-8 pt-20 overflow-y-auto'>
       <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2'>
-        {
-          Array.from({ length: 5 }).map((_, index) => (
-            <img key={index}  src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[4rem] md:w-[7rem] object-contain aspect-square' />
-          ))
-        }
+        
+          <img src={`/images/main-logo.png`} alt="Livello Logo" className='w-[4rem] md:w-[7rem] object-contain aspect-square' />
+    
       </div>
 
 

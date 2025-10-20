@@ -897,9 +897,7 @@ const Listner = () => {
 
             <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2 mt-10'>
               {
-                Array.from({ length: 5 }).map((_, index) => (
-                  <img key={index} src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[4rem] md:w-[7rem] object-contain aspect-square' />
-                ))
+                <img src={`/images/main-logo.png`} alt="Livello Logo" className='w-[4rem] md:w-[7rem] object-contain aspect-square' />
               }
             </div>
           </div>
