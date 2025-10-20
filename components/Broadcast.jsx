@@ -18,8 +18,8 @@ import { flagsMapping, languages, twoWayLanguages, otherLanguageChannel } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StartCaption, StopCaption } from '@/services/CaptionService';
 import { usePrototype } from '@/hooks/usePrototype'
-import { LanguageBotMap } from '@/constants/captionUIDs';
-import useTranscribe from '@/hooks/useTranscription';
+import { WavRecorder } from "wavtools";
+import { Utils } from '@/utils/Utils';
 
 if (typeof window !== "undefined") {
   window.agoraCleanupRegistry = window.agoraCleanupRegistry || {
@@ -107,12 +107,17 @@ const Broadcast = () => {
   const [mute, setMute] = useState(false)
 
 
+
   const [isSwitching, setIsSwitching] = useState(false);
   const isSwitchingRef = useRef(false);
 
   const agentSttRef = useRef(null);
   const protypeRef = usePrototype();
   const clientRef = useRef(null);
+  const mediaRecorderRef = useRef(new WavRecorder({ sampleRate: 24000 }));
+  const websocketRef = useRef(null);
+
+
   useEffect(() => {
     clientRef.current = client; 
   }, [client]);
@@ -137,18 +142,31 @@ const Broadcast = () => {
   }
 
 
-  
-  const { startTranscription, stopTranscription, state, error } = useTranscribe({
-    onTranscription: async (transcription) => {
-      console.log('transcription', transcription);
-      await sendTranscriptOverRTC(transcription, true);
-      // const CHANNEL_NAME = channelNameRef.current;
-      // console.log(CHANNEL_NAME, "CHANNEL_NAME");
-      // await pushMessage("on-transcription", {
-      //   transcription: transcription,
-      // }, CHANNEL_NAME);
-    }
-  });
+  const connectToInterpreter = async () => {
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_INTERPRETER_SERVER}/interpreter?language=${language}`);
+
+    ws.onopen = () => {
+      console.log("Interpreter connected");
+    };
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type == "ping") {
+        console.log("ping received");
+        ws.send(JSON.stringify({ type: 'pong' }));
+      }else if(data.type == "caption"){
+        sendTranscriptOverRTC(data.transcription);
+        console.log(data.transcription, "caption");
+      }
+    };
+    ws.onclose = () => {
+      console.log("Interpreter disconnected");
+    };
+    ws.onerror = (event) => {
+      console.log("Interpreter error", event);
+    };
+    websocketRef.current = ws;
+    return ws;
+  }
 
   useEffect(() => {
     setLanguage(language);
@@ -619,7 +637,6 @@ const Broadcast = () => {
 
         // const agentRes = await StartCaption(CHANNEL_NAME, getLanguage(), uid);
         // agentSttRef.current = agentRes.agentId;
-        startTranscription(language);
       };
 
       // Race between connection and timeout
@@ -649,6 +666,15 @@ const Broadcast = () => {
 
       toast.success("🎙️ Broadcast started successfully! Listeners can now connect.", {
         duration: 4000
+      });
+
+      await connectToInterpreter();
+
+      await mediaRecorderRef.current.begin();
+
+      await mediaRecorderRef.current.record(async (data) => {
+        const base64 = Utils.arrayBufferToBase64(data.mono);
+        await websocketRef.current.send(JSON.stringify({ type: 'audio', audio: base64 }));
       });
 
     } catch (error) {
@@ -702,7 +728,7 @@ const Broadcast = () => {
         setIsReconnecting(false);
       }
 
-      stopTranscription();
+     
 
       // Send session end notification to backend
       try {
@@ -720,6 +746,12 @@ const Broadcast = () => {
       }
 
       toast.info("Broadcast stopped. Thank you for your interpretation!", { duration: 4000 });
+
+
+      if (mediaRecorderRef.current.getStatus() === "recording") {
+        await mediaRecorderRef.current.pause();
+        await mediaRecorderRef.current.end();
+      }
 
     } catch (error) {
       console.error("Error stopping stream:", error);
@@ -886,7 +918,6 @@ const Broadcast = () => {
 
     // const agentRes = await StartCaption(channel, newLanguageValue, uid);
     // agentSttRef.current = agentRes.agentId;
-    startTranscription(newLanguageValue);
   };
 
 
@@ -908,7 +939,6 @@ const Broadcast = () => {
       // notify others you’re going off-air on the old channel
       await sendBroadcasterEvent(0);
       // StopCaption(agentSttRef.current);
-      stopTranscription();
 
       // leave old channel safely
       try {
