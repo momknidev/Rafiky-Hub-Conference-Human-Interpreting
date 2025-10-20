@@ -107,7 +107,7 @@ export const SpeechMatrixSTTService = async (language,sendCaption) => {
         sendAudio,
         stop,
         ws: {
-            readyState: isTranscrabing ? WebSocket.OPEN : WebSocket.CLOSED,
+            readyState: 2,
         }
     }
 }
