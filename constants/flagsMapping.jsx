@@ -11,6 +11,8 @@ export const flagsMapping = {
     arabic: '/flags/sa.svg',
     czech: '/flags/cz.svg',
     hungarian: '/flags/hu.svg',
+    russian: '/flags/ru.svg',
+    spanish: '/flags/re.svg',
 }
 
 export const languages = [
@@ -19,26 +21,31 @@ export const languages = [
         value: 'italian',
         flag: '/flags/it.svg',
     },
-    // {
-    //     name: 'SPANISH',
-    //     value: 'spanish',
-    //     flag: '/flags/re.svg',
-    // },
+    {
+        name: 'SPANISH',
+        value: 'spanish',
+        flag: '/flags/re.svg',
+    },
     {
         name: 'ENGLISH',
         value: 'english',
         flag: '/flags/gb-eng.svg',
+    },
+    {
+        name: 'RUSSIAN',
+        value: 'russian',
+        flag: '/flags/ru.svg',
     },
     // {
     //     name: 'GERMAN',
     //     value: 'german',
     //     flag: '/flags/de.svg',
     // },
-    {
-        name: 'FRENCH',
-        value: 'french',
-        flag: '/flags/fr.svg',
-    },
+    // {
+    //     name: 'FRENCH',
+    //     value: 'french',
+    //     flag: '/flags/fr.svg',
+    // },
     // {
     //     name: 'ROMANIAN',
     //     value: 'romanian',
@@ -122,8 +129,9 @@ export const otherLanguageChannel = [
 
 export const twoWayLanguages = {
     english: true,
-    // spanish: true,
+    spanish: true,
     french: true,
+    russian: true
     //georgian: true,
 }
 

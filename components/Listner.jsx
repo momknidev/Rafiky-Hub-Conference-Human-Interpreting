@@ -886,8 +886,8 @@ const Listner = () => {
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <div className='w-full flex items-center justify-center flex-row gap-4 bg-brand py-4'>
-              <img src={`/logo/logo.png`} alt="Livello Logo" className='w-[15rem] md:w-[20rem] object-contain' />
+            <div className='w-full flex items-center justify-center flex-row gap-4 py-4'>
+              <img src={`/images/main-logo.png`} alt="Livello Logo" className='w-[10rem] md:w-[15rem] object-contain' />
             </div>
           </div>
         </div>
