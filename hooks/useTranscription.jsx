@@ -4,82 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { LanguageBotMap } from '@/constants/captionUIDs';
 
 const END_TOKEN = '<end>';
+const COMMIT_DEBOUNCE_MS = 800; 
 
-const isSentenceComplete = (text) => {
-  if (!text || typeof text !== "string") return false;
 
-  // 1) Trim trailing whitespace + format chars
-  let s = text.replace(/[\s\p{Cf}]+$/gu, "");
-  if (!s) return false;
 
-  // 2) Strip trailing closers repeatedly: quotes/brackets, etc.
-  const closers = /[)"'»”’›\]\}\)]+$/u;
-  while (closers.test(s)) s = s.replace(closers, "").replace(/[\s\p{Cf}]+$/gu, "");
-  if (!s) return false;
-
-  // 3) Non-dot terminators (multilingual)
-  if (/[!?]|[؟]|[۔]|[।]|[॥]$/u.test(s)) return true;
-
-  // 4) Ellipsis
-  if (/[.]{3}$/.test(s) || /…$/.test(s)) return true;
-
-  // 5) If not ending with ".", it's not complete
-  if (!/\.$/u.test(s)) return false;
-
-  // 6) Abbreviation & initials logic for dot-terminated strings
-  const tail = s.slice(Math.max(0, s.length - 40)); // recent tail
-  const tailNorm = tail
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/[»”’"'›\]\}\)]+/g, "");
-
-  // Common multilingual abbreviations (extend as needed)
-  const ABBR = new Set([
-    // EN
-    "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.", "vs.", "etc.", "e.g.", "i.e.", "est.", "dept.", "fig.", "al.",
-    "no.", "comp.", "approx.", "misc.", "st.", "rd.", "ave.", "blvd.", "inc.", "ltd.", "co.", "p.m.", "a.m.",
-    // ES
-    "sr.", "sra.", "sres.", "dra.", "ud.", "uds.", "etc.", "p.ex.", "aprox.", "pág.", "nº.", "no.",
-    // FR
-    "m.", "mme.", "mlle.", "etc.", "p.ex.", "env.", "av.", "bd.", "ste.", "s.a.", "sarl.",
-    // DE
-    "z.b.", "u.a.", "bzw.", "usw.", "str.", "nr.", "fr.", "dr.",
-    // IT
-    "sig.", "sig.ra", "sig.na", "dott.", "ing.", "art.", "nr.", "no.", "ecc.",
-    // RU (Cyrillic with dots)
-    "г.", "ул.", "рис.", "т.д.", "т.п.", "стр.", "дол.", "руб.",
-    // Hindi/Urdu (Latinized)
-    "shri.", "smt.", "no.",
-    // General scholarly
-    "vol.", "ed.", "chap.", "ch.", "sec.", "para.", "pp.", "pg."
-  ]);
-
-  // 6a) If final token looks like a known abbreviation -> NOT complete
-  // Grab run of letters/dots just before the final dot (covers "comp.", "z.b.", "t.p.", etc.)
-  const abbrevWindow = s.toLowerCase().slice(0, -1).match(/([a-z\u0400-\u04ff.]+)$/iu)?.[1] ?? "";
-  if (abbrevWindow && ABBR.has(abbrevWindow + ".")) return false;
-
-  // 6b) Initials handling (without false-matching inside normal words)
-  // Last token (before the final dot)
-  const lastToken = s.slice(0, -1).match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? "";
-
-  // Case: single-letter last token like "A."
-  if (/^\p{L}$/u.test(lastToken)) return false;
-
-  // Case: repeated initials at the very end like "U.S." / "J.K."
-  // We examine the immediate end-of-string tail only.
-  const initialsTail = s.slice(Math.max(0, s.length - 8)); // enough for "A.B." etc.
-  if (/(?<!\p{L})(?:\p{L}\.){2,}$/u.test(initialsTail)) return false;
-  // If your JS runtime doesn't support lookbehind, replace with:
-  // if ((initialsTail.match(/(?:\p{L}\.){2,}$/u)?.[0] ?? "").length > 0) {
-  //   // additionally ensure the char before this run isn't a letter:
-  //   const idx = initialsTail.search(/(?:\p{L}\.){2,}$/u);
-  //   if (idx === 0 || !/\p{L}$/u.test(initialsTail[idx - 1])) return false;
-  // }
-
-  // Otherwise, accept the dot as a real sentence terminator
-  return true;
-}
 
 // useTranscribe hook wraps Soniox speech-to-text-web SDK.
 export default function useTranscribe({ onStarted = null, onFinished = null, onTranscription = null }) {
@@ -95,58 +23,198 @@ export default function useTranscribe({ onStarted = null, onFinished = null, onT
 
   const [state, setState] = useState('Init');
   const [error, setError] = useState(null);
+  const finalLineRef = useRef('');    
+  const liveLineRef = useRef('');    
+  const debounceTimer = useRef(null);
+
+  const clearCommitTimer = useCallback(() => {
+    if (debounceTimer.current) {
+      window.clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+  }, []);
+
+  const commitLine = useCallback(() => {
+    const line = finalLineRef.current.trim();
+    if (line) {
+      onTranscription?.(line);   
+    }
+    finalLineRef.current = '';
+    liveLineRef.current = '';
+  }, [onTranscription]);
+
+  const scheduleCommit = useCallback(() => {
+    if (debounceTimer.current) window.clearTimeout(debounceTimer.current);
+    debounceTimer.current = window.setTimeout(() => {
+      commitLine();
+      debounceTimer.current = null;
+    }, COMMIT_DEBOUNCE_MS);
+  }, [commitLine]);
+
+  const safeAppend = (buf, tokenText) => {
+    if (!tokenText) return buf;
+    const t = tokenText
+      .replace(/\s+([,.;:!?…])/g, '$1') 
+      .replace(/\s+/g, ' ');            
+
+    if (buf.endsWith(' ') && /^[,.;:!?…]/.test(t)) {
+      return buf.slice(0, -1) + t;      
+    }
+    if (buf && !buf.endsWith(' ') && !/^[,.;:!?…]/.test(t)) {
+      return buf + ' ' + t;             
+    }
+    return (buf || '') + t;
+  };
+
+
+  // const startTranscription = useCallback(async (language) => {
+  //   setError(null);
+
+  //   const languageCode = LanguageBotMap[language].langCode.split('-')[0];
+
+
+  //   sonioxClient.current?.start({
+  //     model: 'stt-rt-preview',
+  //     enableLanguageIdentification: false,
+  //     enableSpeakerDiarization: true,
+  //     enableEndpointDetection: true,
+  //     translation: undefined,
+  //     languageHints: [languageCode],
+
+  //     onFinished: onFinished ? onFinished : () => console.log('onFinished'),
+  //     onStarted: onStarted ? onStarted : () => console.log('onStarted'),
+
+  //     onError: (status, message, errorCode) => {
+  //       setError({ status, message, errorCode });
+  //     },
+
+  //     onStateChange: ({ newState }) => {
+  //       console.log('newState', newState);
+  //       setState(newState);
+  //     },
+
+
+  //     onPartialResult(result) {
+  //       let newFinalTokens = '';
+  //       for (const token of result.tokens) {
+  //         // Ignore endpoint detection tokens
+  //         if (token.text === END_TOKEN) {
+  //           onTranscription(newFinalTokens);
+  //           newFinalTokens = '';
+  //           continue;
+  //         }
+
+  //         if (token.is_final) {
+  //           console.log(token.text, "token.text");
+  //           newFinalTokens += token.text;
+  //         }
+
+
+  //       }
+  //     },
+  //   });
+  // }, [onFinished, onStarted]);
+
+
+
 
   const startTranscription = useCallback(async (language) => {
     setError(null);
-
+  
     const languageCode = LanguageBotMap[language].langCode.split('-')[0];
-
-
+  
+    // reset buffers on start
+    finalLineRef.current = '';
+    liveLineRef.current = '';
+    clearCommitTimer?.();
+  
+    // (optional) choose model by language
+    const model = 'stt-rt-preview';
+  
     sonioxClient.current?.start({
-      model: 'stt-rt-preview',
-      enableLanguageIdentification: false,
-      enableSpeakerDiarization: true,
+      model,
+      enableLanguageIdentification: false,   
+      enableSpeakerDiarization: false,       
       enableEndpointDetection: true,
       translation: undefined,
       languageHints: [languageCode],
-
-      onFinished: onFinished ? onFinished : () => console.log('onFinished'),
+  
       onStarted: onStarted ? onStarted : () => console.log('onStarted'),
-
+      onFinished: () => {
+        commitLine();
+        onFinished ? onFinished() : console.log('onFinished');
+      },
+  
       onError: (status, message, errorCode) => {
+        setState('Error');
         setError({ status, message, errorCode });
       },
-
+  
       onStateChange: ({ newState }) => {
         console.log('newState', newState);
         setState(newState);
       },
-
-
+  
+      // 🔑 Fires a lot; append only FINAL tokens to a persistent buffer.
       onPartialResult(result) {
-        let newFinalTokens = '';
-        for (const token of result.tokens) {
-          // Ignore endpoint detection tokens
-          if (token.text === END_TOKEN) {
-            // onTranscription(newFinalTokens);
-            // newFinalTokens = '';
-            continue;
+        try {
+          // Optional live preview (replace-in-place; NO new bullet)
+          const liveStr = (result?.text ?? result?.transcript ?? '').toString().trim();
+          if (liveStr && liveStr !== liveLineRef.current) {
+            liveLineRef.current = liveStr;
+            // if you have a live updater, call it here:
+            // onLiveUpdate?.(liveStr);
           }
-
-          if (token.is_final) {
-            console.log(token.text, "token.text");
-            newFinalTokens += token.text;
+  
+          // Different SDKs expose endpoint differently
+          const endpointFlag =
+            result?.is_endpoint ||
+            result?.endpointed ||
+            result?.end_of_utterance === true;
+  
+          let appendedFinal = false;
+  
+          // Prefer token-wise handling if available
+          if (Array.isArray(result?.tokens)) {
+            for (const token of result.tokens) {
+              // Treat explicit END token as a hard endpoint
+              if (token?.text === (typeof END_TOKEN !== 'undefined' ? END_TOKEN : END_TOKEN_FALLBACK)) {
+                commitLine();
+                clearCommitTimer();
+                continue;
+              }
+              if (token?.is_final) {
+                // finalLineRef.current = safeAppend(finalLineRef.current, token.text);
+                finalLineRef.current += token.text;
+                appendedFinal = true;
+              }
+            }
+          } else if (result?.is_final && typeof result?.text === 'string') {
+            // Some variants emit a full final string instead of per-token finals
+            finalLineRef.current += result.text;
+            appendedFinal = true;
           }
-
-          console.log(`${newFinalTokens} -> ${isSentenceComplete(newFinalTokens)}`);
-          if (isSentenceComplete(newFinalTokens)) {
-            onTranscription(newFinalTokens);
-            newFinalTokens = '';
+  
+          // Commit policy
+          if (endpointFlag) {
+            // Engine says: utterance ended -> commit immediately
+            commitLine();
+            clearCommitTimer();
+            return;
           }
+  
+          if (appendedFinal) {
+            // No hard endpoint yet -> debounce commit on short silence
+            scheduleCommit();
+          }
+        } catch (e) {
+          console.warn('onPartialResult handler error:', e);
         }
       },
     });
-  }, [onFinished, onStarted]);
+  }, [onFinished, onStarted, commitLine, scheduleCommit, clearCommitTimer]);
+
+  
 
   const stopTranscription = useCallback(() => {
     sonioxClient.current?.stop();
