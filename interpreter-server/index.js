@@ -44,7 +44,7 @@ const deepgramLanguages = {
   hindi: "hi",
   hungarian: "hu",
   indonesian: "id",
-  italian: "it",
+  italian: "it-IT",
   japanese: "ja",
   korean: "ko-KR",
   lithuanian: "lt",

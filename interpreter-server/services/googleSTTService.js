@@ -1,8 +1,16 @@
 import { SpeechClient } from "@google-cloud/speech";
+import { ChunkedSentenceStream } from "./CaptionChunkerService.js";
 
 export const GoogleSTTService = async (language, sendCaption) => {
   const client = new SpeechClient({
     keyFilename: "credentials.json",
+  });
+
+  const chunkedSentenceStream = new ChunkedSentenceStream(10);
+
+  chunkedSentenceStream.on("sentence", (sentence) => {
+    console.log(`[GOOGLE STT] Sentence: ${sentence}`);
+    sendCaption(sentence);
   });
 
   // ✅ Create a bidirectional stream (not a promise)
@@ -25,10 +33,10 @@ export const GoogleSTTService = async (language, sendCaption) => {
         const transcript = data.results[0].alternatives[0].transcript;
         const isFinal = data.results[0].isFinal;
 
-        // console.log(`[GOOGLE STT] ${isFinal ? "Final" : "Interim"}:`, transcript);
         if (isFinal){
-            sendCaption(transcript);
-            console.log(`[GOOGLE STT]: ${transcript}`);
+            chunkedSentenceStream.pushDelta(transcript, true);
+        }else{
+            chunkedSentenceStream.pushDelta(transcript, false);
         }
       }
     })
@@ -55,4 +63,3 @@ export const GoogleSTTService = async (language, sendCaption) => {
     stop,
   };
 };
-
