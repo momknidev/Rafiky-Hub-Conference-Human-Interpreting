@@ -5,6 +5,7 @@ import config from 'dotenv';
 config.config({path: '.env.local'});
 import WebSocket from 'ws';
 import { SpeechMatrixSTTService } from './services/speechMatrixService.js';
+import { GoogleSTTService } from './services/googleSTTService.js';
 const app = express();
 expressWs(app);
 
@@ -140,7 +141,7 @@ app.ws('/interpreter', async (ws, req) => {
       transcription: text
     }))
   }
-  const sttRef = await SpeechMatrixSTTService(openaiLanguage[language],sendCaption);
+  const sttRef = await GoogleSTTService(deepgramLanguages[language],sendCaption);
 
   console.log(`[WebSocket] Connected - Language: ${language}`);
   ws.on('message', (msg) => {
