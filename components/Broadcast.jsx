@@ -90,8 +90,6 @@ const Broadcast = () => {
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [client, setClient] = useState(null);
   const [clientAsListener, setClientAsListener] = useState(null);
-
-  const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
   const [isPartnerAudioPlaying, setIsPartnerAudioPlaying] = useState(false);
   // Enhanced monitoring state
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
@@ -334,15 +332,13 @@ const Broadcast = () => {
     agoraClient.on('user-published', async (user, mediaType) => {
       console.log("user publish")
       if (mediaType === 'audio') {
-        await agoraClient.subscribe(user, mediaType);
-        const audioTrack = user.audioTrack;
-        setRemoteAudioTrack(audioTrack);
+        console.log("user published")
       }
     });
 
     agoraClient.on('user-unpublished', (user, mediaType) => {
       if (mediaType === 'audio') {
-        setRemoteAudioTrack(null);
+        console.log("user unpublished")
       }
     });
 
@@ -355,75 +351,6 @@ const Broadcast = () => {
     };
   }, [AgoraRTC, isSDKLoading]);
 
-
-  // Initialize Agora client as listener
-  useEffect(() => {
-    if (!AgoraRTC || isSDKLoading) return;
-    console.log("loaderrrrrrr 2")
-
-    const agoraClient = AgoraRTC.createClient({
-      mode: 'live',
-      codec: 'vp8',
-      role: 'audience'
-    });
-    setClientAsListener(agoraClient);
-
-    // Enhanced event handlers
-    agoraClient.on('user-published', async (user, mediaType) => {
-      console.log("user-published");
-      if (mediaType === 'audio' && isComponentMountedRef.current) {
-        try {
-          await agoraClient.subscribe(user, mediaType);
-          const audioTrack = user.audioTrack;
-          setRemoteAudioTrack(audioTrack);
-        } catch (error) {
-          console.error('Error subscribing to audio:', error);
-        }
-      }
-    });
-
-    agoraClient.on('user-unpublished', (user, mediaType) => {
-      if (mediaType === 'audio' && isComponentMountedRef.current) {
-        setIsPartnerAudioPlaying(false);
-        setRemoteAudioTrack(null);
-
-        setTimeout(() => setAirEventCount(null), 5000)
-      }
-    });
-
-    // Enhanced channel joining with timeout
-    const joinChannel = async () => {
-
-      try {
-        const APP_ID = process.env.NEXT_PUBLIC_AGORA_APPID;
-        const CHANNEL_NAME = getChannelName(language);
-        const { token, uid } = await generateToken("SUBSCRIBER", CHANNEL_NAME);
-
-        if (!APP_ID || !CHANNEL_NAME) {
-          throw new Error(`Missing required Agora configuration`);
-        }
-
-        const joinPromise = (async () => {
-          await agoraClient.setClientRole('audience');
-          await agoraClient.join(APP_ID, CHANNEL_NAME, token, uid);
-        })();
-
-
-        await Promise.race([joinPromise]);
-      } catch (error) {
-        console.error("Error joining channel:", error);
-      }
-    };
-
-
-    joinChannel();
-
-    return () => {
-      console.log("loaderrrrrrr removeAllListeners 2");
-      agoraClient.removeAllListeners();
-      agoraClient.leave().catch(console.error);
-    };
-  }, [AgoraRTC, isSDKLoading]);
 
   // Enhanced microphone initialization with better error handling
   const initializeMicrophone = async () => {
@@ -943,76 +870,6 @@ const Broadcast = () => {
     }
   };
 
-  // const handlePartnerAudio = async () => {
-  //   console.log(remoteAudioTrack, "remoteAudioTrack");
-  //   if (isPartnerAudioPlaying) {
-  //     console.log("stop");
-  //     remoteAudioTrack.setVolume(0);
-  //     await remoteAudioTrack.stop();
-  //     setIsPartnerAudioPlaying(false);
-  //   } else {
-  //     console.log("play");
-  //     remoteAudioTrack.setVolume(100);
-  //     await remoteAudioTrack.play();
-  //     setIsPartnerAudioPlaying(true);
-  //   }
-  // };
-
-
-  const handlePartnerAudio = async () => {
-    if (!remoteAudioTrack) {
-      toast.error("No partner audio available");
-      return;
-    }
-
-    try {
-      if (isPartnerAudioPlaying) {
-        await remoteAudioTrack.stop();
-        remoteAudioTrack.setVolume(0);
-        setIsPartnerAudioPlaying(false);
-        toast.info("Partner audio stopped");
-      } else {
-        // Stop relay channel first if playing
-        if (currentPlayingChannel) {
-          const channel = otherChannels[currentPlayingChannel];
-          if (channel?.audioTrack) {
-            try {
-              await channel.audioTrack.stop();
-              channel.audioTrack.setVolume(0);
-            } catch (err) {
-              console.warn('Stop error (ignored):', err);
-            }
-          }
-          setCurrentPlayingChannel(null);
-          setOtherChannels(prev => ({
-            ...prev,
-            [currentPlayingChannel]: { ...prev[currentPlayingChannel], isPlaying: false }
-          }));
-        }
-
-        // ========== NEW: Resume AudioContext for partner audio ==========
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-          const ctx = new AudioContext();
-          if (ctx.state === "suspended") {
-            await ctx.resume();
-            console.log('[Partner Audio] AudioContext resumed');
-          }
-          window.agoraCleanupRegistry.audioContexts.push(ctx);
-        }
-        // ========== END NEW CODE ==========
-
-        // Play partner audio
-        remoteAudioTrack.setVolume(100);
-        await remoteAudioTrack.play();
-        setIsPartnerAudioPlaying(true);
-        toast.success("Partner audio playing");
-      }
-    } catch (error) {
-      console.error('Partner audio error:', error);
-      toast.error("Error controlling partner audio");
-    }
-  };
 
   const statusConfig = getConnectionStatusConfig();
   const StatusIcon = statusConfig.icon;
@@ -1403,33 +1260,7 @@ const Broadcast = () => {
                 </h3>
 
                 <div className="space-y-8">
-                  {
-                    !isLive && (
-                      <div className='grid grid-cols-1 gap-2'>
-
-                        <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between flex-col">
-                          <span className="text-zero-text font-medium block text-2xl mb-4">Partner Audio</span>
-                          <Button
-                            disabled={!remoteAudioTrack}
-                            onClick={handlePartnerAudio}
-                            variant="outline"
-                            size="icon"
-                            className="border-zero-navy disabled:opacity-50 disabled:cursor-not-allowed bg-zero-green text-white hover:bg-zero-green hover:text-white font-inter font-medium border-none rounded-full cursor-pointer"
-                          >
-                            {isPartnerAudioPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                          </Button>
-
-                          {
-                            !remoteAudioTrack ? (
-                              <span className="text-zero-text/70 block mt-5">No Partner is Live</span>
-                            ) : (
-                              <span className="text-zero-text/70 block mt-5">Partner is Live</span>
-                            )
-                          }
-                        </div>
-                      </div>
-                    )
-                  }
+                
 
                   <div className="grid grid-cols-2 gap-6 text-sm font-inter">
 

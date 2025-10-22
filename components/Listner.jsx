@@ -895,10 +895,15 @@ const Listner = () => {
               height="200"
             /> */}
 
-            <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2 mt-10'>
+            <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2 relative'>
+              <img src={`/logo/logo-4.png`} alt="Livello Logo" className='w-[12rem] md:w-[14rem] object-contain aspect-square' />
+            </div>
+            <div className='w-full flex items-center justify-center flex-row md:gap-4 gap-2 relative -top-20'>
               {
                 Array.from({ length: 6 }).map((_, index) => (
-                  <img key={index} src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[3rem] md:w-[7rem] object-contain aspect-square' />
+                  index !== 4 && (
+                    <img key={index} src={`/logo/logo-${index + 1}.png`} alt="Livello Logo" className='w-[3rem] md:w-[7rem] object-contain aspect-square' />
+                  )
                 ))
               }
 
