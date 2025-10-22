@@ -9,16 +9,16 @@ const ChannelContext = createContext({
 })
 
 export const ChannelProvider = ({ children}) => {
-  const [channelName, setChannelName] = useState('rational-english');
+  const [channelName, setChannelName] = useState('hdshihdifhdofi45-english');
   const [language, setLanguage] = useState('english');
 
 
   useEffect(() => {
-    setChannelName(`rational-${language}`);
+    setChannelName(`hdshihdifhdofi45-${language}`);
   },[language])
 
   const getChannelName = (lang) => {
-    return `rational-${lang}`;
+    return `hdshihdifhdofi45-${lang}`;
   }
 
   const getLanguage = () => {

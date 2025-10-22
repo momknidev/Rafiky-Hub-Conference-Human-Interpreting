@@ -306,6 +306,35 @@ const Listner = () => {
   const [subTitle2, setSubtitle2] = useState('')
   const subtitleTextRef = useRef(null);
   const subTitleText2ref = useState(null);
+  const listCaptionRef = useRef([]);
+  const isCaptionLoopStartRef = useRef(false);
+
+
+
+
+  const startCaption = () => {
+    if(listCaptionRef.current.length > 0){
+      isCaptionLoopStartRef.current = true;
+      const caption = listCaptionRef.current.shift();
+      const timeOutDuration = Math.max(3.0, 0.06 * caption.length);
+      setTimeout(() => {
+        subTitleRef.current = uuidv4();
+        setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: caption, isFinal: true }]);
+        subtitleTextRef.current?.classList.remove("visible");
+        setTimeout(() => {
+          setSubtitleText(prev => {
+            setSubtitle2(prev)
+            return caption
+          });
+          subtitleTextRef.current?.classList.add("visible");
+        }, 1000);
+
+        startCaption();
+      }, timeOutDuration * 1000);
+    }else{
+      isCaptionLoopStartRef.current = false;
+    }
+  }
 
 
   //auto scroll to bottom
@@ -644,16 +673,10 @@ const Listner = () => {
         const msg = Text.decode(bytes);
         if (msg.dataType === "transcribe") {
           if (msg?.words[0]?.isFinal) {
-            subTitleRef.current = uuidv4();
-            setSubtitles(prev => [...prev, { uuid: subTitleRef.current, text: msg?.words[0]?.text, isFinal: msg?.words[0]?.isFinal }]);
-            subtitleTextRef.current?.classList.remove("visible");
-            setTimeout(() => {
-              setSubtitleText(prev => {
-                setSubtitle2(prev)
-                return msg?.words[0]?.text
-              });
-              subtitleTextRef.current?.classList.add("visible");
-            }, 1000);
+           listCaptionRef.current.push(msg?.words[0]?.text);
+           if(!isCaptionLoopStartRef.current){
+            startCaption();
+           }
           }
         }
 
