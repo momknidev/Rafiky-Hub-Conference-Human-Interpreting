@@ -1,0 +1,1 @@
+export const removePunctuation = (text) => text.replace(/[\p{P}\p{S}]/gu, "").trim();

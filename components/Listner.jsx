@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { flagsMapping } from '@/constants/flagsMapping';
 import { usePrototype } from '@/hooks/usePrototype';
 import { v4 as uuidv4 } from 'uuid';
+import { removePunctuation } from '@/utils/removePunctuation';
 
 
 
@@ -315,7 +316,7 @@ const Listner = () => {
   const startCaption = () => {
     if(listCaptionRef.current.length > 0){
       isCaptionLoopStartRef.current = true;
-      const caption = listCaptionRef.current.shift();
+      const caption = removePunctuation(listCaptionRef.current.shift());
       const timeOutDuration = Math.max(3.0, 0.06 * caption.length);
       setTimeout(() => {
         subTitleRef.current = uuidv4();
