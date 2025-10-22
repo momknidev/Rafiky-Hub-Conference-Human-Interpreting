@@ -2,6 +2,8 @@ import { SpeechClient } from "@google-cloud/speech";
 import { ChunkedSentenceStream } from "./CaptionChunkerService.js";
 
 export const GoogleSTTService = async (language, sendCaption) => {
+  let list = [];
+  let isStarted = false;
   const client = new SpeechClient({
     keyFilename: "credentials.json",
   });
@@ -11,7 +13,24 @@ export const GoogleSTTService = async (language, sendCaption) => {
   chunkedSentenceStream.on("sentence", (sentence) => {
     console.log(`[GOOGLE STT] Sentence: ${sentence}`);
     sendCaption(sentence);
+    list.push(sentence);
+    if(!isStarted){
+      startPusher();
+    }
   });
+
+  const startPusher = () => {
+    if(list.length > 0){
+      isStarted = true;
+      const sentence = list.shift();
+      const timeoutDuration = Math.max(2.0,0.06 * sentence.length);
+      setTimeout(() => {
+        sendCaption(sentence);
+      }, timeoutDuration * 1000);
+    }else{
+      isStarted = false;
+    }
+  }
 
   // ✅ Create a bidirectional stream (not a promise)
   const recognizeStream = client
