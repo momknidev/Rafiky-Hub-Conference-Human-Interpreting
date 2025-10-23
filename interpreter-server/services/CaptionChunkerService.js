@@ -1,52 +1,41 @@
 import { EventEmitter } from "node:events";
 
-
 export class ChunkedSentenceStream extends EventEmitter {
     masks = []
     max_word = 12
+    emitBuffer = ""
+    interimBuffer = ""
+    lastWordTimestamp = 0
+    silenceThreshold = 500
     constructor(max_word = 12) {
         super();
         this.max_word = max_word;
+        this.lastWordTimestamp = new Date().getTime();
     }
 
     pushDelta(delta, isFinal) {
-        if(isFinal) {
-            let trimText = delta.trim();
-            //remove punctuation marks
-            trimText = trimText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-            this.masks.forEach((mask) => {
-                trimText = trimText.replace(new RegExp(mask, 'gi'), '');
-            });
-            this.masks = [];
-            console.log(`FFinalized Speech`);
-            if(trimText.trim()){
-                this.emit("sentence", trimText);
-            }
-        }
 
-        if(!isFinal){
-            
-            let trimText = delta.trim();
-            //remove punctuation marks
-            trimText = trimText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-            this.masks.forEach((mask) => {
-                trimText = trimText.replace(new RegExp(mask, 'gi'), '');
-            });
-            
-            const wordsLenght = trimText.split(' ').length;
-            if(wordsLenght > this.max_word + 1){
-                const text = trimText.split(' ').slice(0, this.max_word).join(' ');
-                this.masks.push(text);
+        const currentTime = new Date();
+        const currentTimestamp = currentTime.getTime();
 
-                if(text.trim()){
-                    this.emit("sentence", text);
-                }
-            }
+        const timeGap = this.lastWordTimestamp ? currentTimestamp - this.lastWordTimestamp : 0;
+
+        if (timeGap >= this.silenceThreshold) {
+            console.log(`[SILENCE DETECTED] No speech for ${timeGap}ms. Logging final sentence.`);
+            this.logFinalSentence(delta);
+            this.lastWordTimestamp = currentTime.getTime();
+            
         }
+    }
+
+    logFinalSentence(delta) {
+        const currentTime = new Date();
+        const formattedTime = `${currentTime.toLocaleString()}.${currentTime.getMilliseconds().toString().padStart(3, '0')}`;
+        console.log(`[FINAL ${formattedTime}] ${delta}`);
+        this.emit("sentence", delta);
     }
 
     clear() {
         this.buffer = "";
     }
 }
-
