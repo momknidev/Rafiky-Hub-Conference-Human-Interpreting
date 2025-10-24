@@ -8,18 +8,10 @@ const LanguageSelect = () => {
   }, []);
 
   return (
-    <div className='h-screen w-screen flex flex-col items-center justify-start py-10 px-8 pt-20 overflow-y-auto'>
+    <div className='h-screen w-screen flex flex-col items-center justify-start py-10 px-8 pt-2 overflow-y-auto'>
 
-      <div className='w-full flex flex-row items-center justify-center gap-2 bg-zero-green/80 p-4'>
-            {
-              Array.from({ length: 4 }).map((_, index) => (
-                <Link href={`/lang/${index + 1}`} key={index + 1}>
-                  <div className='flex items-center justify-start gap-2 flex-col my-2'>
-                    <img src={`/logo/logo-${index + 1}.png`} alt={`Language ${index + 1}`} className='w-[8rem] md:w-[10rem] object-contain aspect-square' />
-                  </div>
-                </Link>
-              ))
-            }
+      <div className='w-full flex flex-row items-center justify-center gap-2 p-4'>
+        <img src="/images/main-logo.png" alt="logo" className='w-[12rem] object-contain aspect-square' />
       </div>
 
       <div className='w-full flex flex-col items-center justify-center mt-10'>

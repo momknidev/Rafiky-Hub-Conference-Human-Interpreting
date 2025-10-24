@@ -886,188 +886,182 @@ const Listner = () => {
         {/* Festival Header */}
         <div className="w-full overflow-hidden">
           <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-            <div className='w-full flex flex-row items-center justify-center gap-2 bg-zero-green/80 p-4'>
-              {
-                Array.from({ length: 4 }).map((_, index) => (
-                  <Link href={`/lang/${index + 1}`} key={index + 1}>
-                    <div className='flex items-center justify-start gap-2 flex-col my-2'>
-                      <img src={`/logo/logo-${index + 1}.png`} alt={`Language ${index + 1}`} className='w-[8rem] md:w-[10rem] object-contain aspect-square' />
-                    </div>
-                  </Link>
-                ))
-              }
+            <div className='w-full flex flex-row items-center justify-center gap-2 p-4'>
+              <div className='w-full flex flex-row items-center justify-center gap-2 p-4'>
+                <img src="/images/main-logo.png" alt="logo" className='w-[12rem] object-contain aspect-square' />
+              </div>
             </div>
           </div>
         </div>
 
-        <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
-          {/* Service Title */}
-          <div className="text-center mb-10 sm:mb-12">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6 flex items-center justify-center">
-              Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} {language == "translation" ? "" : "Interpretation"} Service
-            </h1>
+          <main className="w-full px-4 py-6 sm:px-6 sm:py-8">
+            {/* Service Title */}
+            <div className="text-center mb-10 sm:mb-12">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-inter font-bold text-zero-text mb-6 flex items-center justify-center">
+                Live {language?.slice(0, 1).toUpperCase()}{language?.slice(1).toLowerCase()} {language == "translation" ? "" : "Interpretation"} Service
+              </h1>
 
 
-            {/* Status Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-              {isSDKLoading ? (
-                <>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-blue-600 bg-blue-50">
-                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    Initializing Service
-                  </div>
-                  <div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                  <div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                </>
-              ) : (
-                <>
-                  <Suspense fallback={<div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
-                    <OnAirIndicator isLive={isLive} />
-                  </Suspense>
-                  <Suspense fallback={<div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
-                    <ListenerCountBadge count={listenerCount} />
-                  </Suspense>
+              {/* Status Indicators */}
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+                {isSDKLoading ? (
+                  <>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-blue-600 bg-blue-50">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      Initializing Service
+                    </div>
+                    <div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                  </>
+                ) : (
+                  <>
+                    <Suspense fallback={<div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                      <OnAirIndicator isLive={isLive} />
+                    </Suspense>
+                    <Suspense fallback={<div className="w-20 h-8 bg-gray-200 rounded-full animate-pulse"></div>}>
+                      <ListenerCountBadge count={listenerCount} />
+                    </Suspense>
 
-                  {/* Connection Status */}
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${streamStatus.status === 'live' ? 'text-green-600 bg-green-50' :
-                    streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-blue-50' :
-                      streamStatus.status === 'loading' ? 'text-blue-600 bg-blue-50' :
-                        'text-orange-600 bg-orange-50'
-                    }`}>
-                    {streamStatus.status === 'reconnecting' || streamStatus.status === 'loading' ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    ) : streamStatus.status === 'live' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4" />
-                    )}
-                    {streamStatus.status === 'live' ? 'Connected' :
-                      streamStatus.status === 'reconnecting' ? `Reconnecting (${reconnectCount}/${maxReconnectAttempts})` :
-                        streamStatus.status === 'loading' ? 'Loading' :
-                          streamStatus.status === 'waiting' ? 'Connecting Audio' :
-                            'Offline'}
-                  </div>
-                </>
-              )}
+                    {/* Connection Status */}
+                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${streamStatus.status === 'live' ? 'text-green-600 bg-green-50' :
+                      streamStatus.status === 'reconnecting' ? 'text-blue-600 bg-blue-50' :
+                        streamStatus.status === 'loading' ? 'text-blue-600 bg-blue-50' :
+                          'text-orange-600 bg-orange-50'
+                      }`}>
+                      {streamStatus.status === 'reconnecting' || streamStatus.status === 'loading' ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      ) : streamStatus.status === 'live' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4" />
+                      )}
+                      {streamStatus.status === 'live' ? 'Connected' :
+                        streamStatus.status === 'reconnecting' ? `Reconnecting (${reconnectCount}/${maxReconnectAttempts})` :
+                          streamStatus.status === 'loading' ? 'Loading' :
+                            streamStatus.status === 'waiting' ? 'Connecting Audio' :
+                              'Offline'}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Alert Banners */}
-          {streamStatus.status === 'reconnecting' && (
-            <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <div>
-                  <p className="font-semibold text-blue-800">Reconnecting to interpretation service...</p>
-                  <p className="text-sm text-blue-600">
-                    Attempt {reconnectCount} of {maxReconnectAttempts} - Audio will resume automatically
-                  </p>
+            {/* Alert Banners */}
+            {streamStatus.status === 'reconnecting' && (
+              <div className="max-w-md lg:max-w-4xl mx-auto mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div>
+                    <p className="font-semibold text-blue-800">Reconnecting to interpretation service...</p>
+                    <p className="text-sm text-blue-600">
+                      Attempt {reconnectCount} of {maxReconnectAttempts} - Audio will resume automatically
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Main Player Section */}
-          <div className="max-w-md lg:max-w-4xl mx-auto">
-            <div className="lg:grid lg:grid-cols-1 lg:gap-10 space-y-8 lg:space-y-0">
+            {/* Main Player Section */}
+            <div className="max-w-md lg:max-w-4xl mx-auto">
+              <div className="lg:grid lg:grid-cols-1 lg:gap-10 space-y-8 lg:space-y-0">
 
-              {/* Left Column - Primary Controls */}
-              <div className="space-y-8">
+                {/* Left Column - Primary Controls */}
+                <div className="space-y-8">
 
-                {/* Primary Control Card */}
-                <Card className="bg-white/90 border-0 rounded-2xl">
-                  <div className="p-8 text-center">
-                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
-                      {isPlaying ? (
-                        <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
-                      ) : (
-                        <Play className="h-10 w-10 lg:h-14 lg:w-14 text-white ml-1" />
-                      )}
-                    </div>
+                  {/* Primary Control Card */}
+                  <Card className="bg-white/90 border-0 rounded-2xl">
+                    <div className="p-8 text-center">
+                      <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-zero-green to-zero-blue rounded-full mx-auto mb-8 flex items-center justify-center transform transition-all duration-300 hover:scale-105">
+                        {isPlaying ? (
+                          <Pause className="h-10 w-10 lg:h-14 lg:w-14 text-white" />
+                        ) : (
+                          <Play className="h-10 w-10 lg:h-14 lg:w-14 text-white ml-1" />
+                        )}
+                      </div>
 
-                    <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
-                      {streamStatus.status === 'live' ? 'Live Stream Active' :
-                        streamStatus.status === 'loading' ? 'Loading Service' :
-                          streamStatus.status === 'reconnecting' ? 'Reconnecting' :
-                            streamStatus.status === 'waiting' ? 'Connecting Audio' :
-                              'Stream Offline'}
-                    </h3>
+                      <h3 className="text-2xl lg:text-3xl font-inter font-bold text-zero-text mb-4">
+                        {streamStatus.status === 'live' ? 'Live Stream Active' :
+                          streamStatus.status === 'loading' ? 'Loading Service' :
+                            streamStatus.status === 'reconnecting' ? 'Reconnecting' :
+                              streamStatus.status === 'waiting' ? 'Connecting Audio' :
+                                'Stream Offline'}
+                      </h3>
 
-                    <p className="text-base lg:text-lg font-inter text-zero-text/70 mb-8">
-                      {streamStatus.message}
-                    </p>
+                      <p className="text-base lg:text-lg font-inter text-zero-text/70 mb-8">
+                        {streamStatus.message}
+                      </p>
 
-                    {/* Action Buttons */}
-                    {streamStatus.status === 'live' && (
-                      <>
+                      {/* Action Buttons */}
+                      {streamStatus.status === 'live' && (
+                        <>
+                          <Button
+                            onClick={handlePlayPauseStream}
+                            className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${isPlaying
+                              ? 'bg-zero-warning text-white hover:bg-zero-warning/90'
+                              : 'bg-zero-green text-white hover:bg-zero-green/90'
+                              }`}
+                            size="lg"
+                            disabled={streamStatus.status === 'reconnecting'}
+                          >
+                            {isPlaying ? (
+                              <>
+                                <Pause className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                                Pause Stream
+                              </>
+                            ) : (
+                              <>
+                                <Play className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                                Start Listening
+                              </>
+                            )}
+                          </Button>
+
+                          {
+                            subtitleOpen == false && (
+                              <Button
+                                onClick={() => setSubtitleOpen(true)}
+                                className="text-blue-500 hover:text-blue-600 ml-auto"
+                                size="lg"
+                              >
+                                Open Subtitles
+                              </Button>
+                            )
+                          }
+                        </>
+                      )
+                      }
+
+
+                      {streamStatus.status !== 'live' && (
                         <Button
-                          onClick={handlePlayPauseStream}
-                          className={`w-full text-lg lg:text-xl px-8 py-6 lg:py-8 font-bold transition-all duration-300 hover:scale-105 font-inter rounded-xl ${isPlaying
-                            ? 'bg-zero-warning text-white hover:bg-zero-warning/90'
-                            : 'bg-zero-green text-white hover:bg-zero-green/90'
-                            }`}
+                          className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-zero-navy/80 text-white font-bold font-inter rounded-xl"
                           size="lg"
-                          disabled={streamStatus.status === 'reconnecting'}
+                          disabled
                         >
-                          {isPlaying ? (
-                            <>
-                              <Pause className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                              Pause Stream
-                            </>
-                          ) : (
-                            <>
-                              <Play className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                              Start Listening
-                            </>
-                          )}
+                          <Radio className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
+                          Waiting For Broadcaster...
                         </Button>
-
-                        {
-                          subtitleOpen == false && (
-                            <Button
-                              onClick={() => setSubtitleOpen(true)}
-                              className="text-blue-500 hover:text-blue-600 ml-auto"
-                              size="lg"
-                            >
-                              Open Subtitles
-                            </Button>
-                          )
-                        }
-                      </>
-                    )
-                    }
+                      )}
 
 
-                    {streamStatus.status !== 'live' && (
-                      <Button
-                        className="w-full text-lg lg:text-xl px-8 py-6 lg:py-8 bg-zero-navy/80 text-white font-bold font-inter rounded-xl"
-                        size="lg"
-                        disabled
-                      >
-                        <Radio className="mr-2 h-5 w-5 lg:h-6 lg:w-6" />
-                        Waiting For Broadcaster...
-                      </Button>
-                    )}
+                    </div>
+                  </Card>
+                </div>
 
 
-                  </div>
-                </Card>
               </div>
-
-
             </div>
-          </div>
-        </main>
-      </div>
+          </main>
+        </div>
 
-      {
-        subTitle.length > 0 && (
-          <div className='h-[15rem] w-full'></div>
-        )
-      }
+        {
+          subTitle.length > 0 && (
+            <div className='h-[15rem] w-full'></div>
+          )
+        }
 
-      {/* Optimized CSS */}
-      <style jsx>{`
+        {/* Optimized CSS */}
+        <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
           height: 20px;
@@ -1121,8 +1115,8 @@ const Listner = () => {
           50% { opacity: .5; }
         }
       `}</style>
-    </>
-  );
+      </>
+      );
 };
 
-export default React.memo(Listner);
+      export default React.memo(Listner);
